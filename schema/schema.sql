@@ -424,7 +424,7 @@ CREATE TABLE `yarn_appmaster_rpc` (
   `rpc` VARBINARY(13000) NOT NULL,
   `userid` VARCHAR(250) NULL,
   PRIMARY KEY (`rpcid`)
-) ENGINE=ndbcluster DEFAULT CHARSET=latin1$$
+) ENGINE=ndbcluster DEFAULT CHARSET=latin1 PARTITION BY KEY(rpcid)$$
 
 
 delimiter $$
