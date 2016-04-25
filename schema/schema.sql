@@ -1078,12 +1078,7 @@ CREATE TABLE `yarn_heartbeat_rpc` (
   `node_health_status` VARBINARY(1000) NOT NULL,
   `last_container_token_key` VARBINARY(1000) NOT NULL,
   `last_nm_key` VARBINARY(1000) NOT NULL,
-  PRIMARY KEY (`rpcid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1092,12 +1087,7 @@ CREATE TABLE `yarn_heartbeat_container_statuses` (
   `rpcid` INT NOT NULL,
   `containerid` VARCHAR(200) NOT NULL,
   `status` VARBINARY(3000) NOT NULL,
-  PRIMARY KEY (`rpcid`, `containerid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `containerid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1105,12 +1095,7 @@ delimiter $$
 CREATE TABLE `yarn_heartbeat_keepalive_app` (
   `rpcid` INT NOT NULL,
   `appid` VARCHAR(255) NOT NULL,
-  PRIMARY KEY (`rpcid`, `appid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `appid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$

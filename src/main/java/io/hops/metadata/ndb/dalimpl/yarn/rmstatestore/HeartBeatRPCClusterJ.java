@@ -30,6 +30,11 @@ import io.hops.metadata.ndb.wrapper.HopsSession;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.HeartBeatRPCDataAccess;
 import io.hops.metadata.yarn.entity.appmasterrpc.HeartBeatRPC;
+import io.hops.metadata.yarn.entity.appmasterrpc.ToRemoveHBContainerStatus;
+import io.hops.metadata.yarn.entity.appmasterrpc.ToRemoveHBKeepAliveApp;
+import io.hops.metadata.yarn.entity.appmasterrpc.ToRemoveRPC;
+
+import javax.annotation.OverridingMethodsMustInvokeSuper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -140,6 +145,103 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
     session.release(hbDTO);
     session.release(containerStatusDTOs);
     session.release(keepAliveDTOs);
+  }
+
+  public void removeAll(List<ToRemoveRPC> hbRPCsToRemove,
+          List<ToRemoveHBContainerStatus> hbContStatusesToRemove,
+          List<ToRemoveHBKeepAliveApp> hbKeepAliveAppsToRemove)
+    throws StorageException {
+
+    if (hbRPCsToRemove.isEmpty()
+            && hbContStatusesToRemove.isEmpty()
+            && hbKeepAliveAppsToRemove.isEmpty()) {
+      return;
+    }
+
+    HopsSession session = connector.obtainSession();
+
+    List<HeartBeatRPCDTO> hbToRemove = createRemovableHBRPCs(hbRPCsToRemove, session);
+    List<HeartBeatContainerStatusDTO> hbContStat =
+            createRemovableHBContainerStatuses(hbContStatusesToRemove, session);
+    List<HeartBeatKeepAliveApplicationDTO> hbKeepAlive =
+            createRemovableHBKeepAliveApps(hbKeepAliveAppsToRemove, session);
+
+    if (hbToRemove != null) {
+      session.deletePersistentAll(hbToRemove);
+      session.release(hbToRemove);
+    }
+
+    if (hbContStat != null) {
+      session.deletePersistentAll(hbContStat);
+      session.release(hbContStat);
+    }
+
+    if (hbKeepAlive != null) {
+      session.deletePersistentAll(hbKeepAlive);
+      session.release(hbKeepAlive);
+    }
+  }
+
+  private List<HeartBeatRPCDTO> createRemovableHBRPCs(List<ToRemoveRPC> toRemove, HopsSession session)
+          throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<HeartBeatRPCDTO> hbToRemove = new ArrayList<HeartBeatRPCDTO>(toRemove.size());
+    for (ToRemoveRPC rpc : toRemove) {
+      HeartBeatRPCDTO hbDTO = session.newInstance(HeartBeatRPCDTO.class, rpc.getRpcId());
+      hbToRemove.add(hbDTO);
+    }
+
+    return hbToRemove;
+  }
+
+  private List<HeartBeatContainerStatusDTO> createRemovableHBContainerStatuses(
+          List<ToRemoveHBContainerStatus> toRemove, HopsSession session)
+    throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<HeartBeatContainerStatusDTO> hbToRemove =
+            new ArrayList<HeartBeatContainerStatusDTO>(toRemove.size());
+    for (ToRemoveHBContainerStatus rpc : toRemove) {
+      Object[] dtoParam = new Object[2];
+      dtoParam[0] = rpc.getRpcId();
+      dtoParam[1] = rpc.getContainerId();
+
+      HeartBeatContainerStatusDTO hbDTO = session
+              .newInstance(HeartBeatContainerStatusDTO.class, dtoParam);
+      hbToRemove.add(hbDTO);
+    }
+
+    return hbToRemove;
+  }
+
+  private List<HeartBeatKeepAliveApplicationDTO> createRemovableHBKeepAliveApps(
+          List<ToRemoveHBKeepAliveApp> toRemove, HopsSession session)
+    throws StorageException {
+
+    if(toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<HeartBeatKeepAliveApplicationDTO> hbToRemove =
+            new ArrayList<HeartBeatKeepAliveApplicationDTO>(toRemove.size());
+    for (ToRemoveHBKeepAliveApp rpc : toRemove) {
+      Object[] dtoParam = new Object[2];
+      dtoParam[0] = rpc.getRpcId();
+      dtoParam[1] = rpc.getAppId();
+
+      HeartBeatKeepAliveApplicationDTO hbDTO = session
+              .newInstance(HeartBeatKeepAliveApplicationDTO.class, dtoParam);
+      hbToRemove.add(hbDTO);
+    }
+
+    return hbToRemove;
   }
 
   @Override
