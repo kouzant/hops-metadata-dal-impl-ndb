@@ -1184,7 +1184,7 @@ delimiter $$
 
 CREATE TABLE `yarn_allocate_rpc_resource_increase` (
   `rpcid` INT NOT NULL,
-  `containerid` INT NOT NULL,
+  `containerid` VARCHAR(255) NOT NULL,
   `request` varbinary(1000) NULL,
   PRIMARY KEY (`rpcid`, `containerid`),
   CONSTRAINT `rpcid`
