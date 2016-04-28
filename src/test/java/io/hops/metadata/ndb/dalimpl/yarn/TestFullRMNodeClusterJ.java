@@ -41,7 +41,7 @@ public class TestFullRMNodeClusterJ extends NDBBaseTest {
     final RMNode hopRMNodeOrigin
             = new RMNode("70", "rmnode70", 9999, 9876, "127.0.0.1",
                     "hop.sics.se",
-                    "life is good ", -10L, "relax", "hayarn", 10, 3, 0);
+                    "life is good ", -10L, "relax", "hayarn", 10, 0);
     final Node hopNodeOrigin
             = new Node("70", "rmnode70", "ici", 1000, "papa", 0);
     final List<NodeHBResponse> hopNHBROrigin = new ArrayList<NodeHBResponse>();
@@ -183,30 +183,6 @@ public class TestFullRMNodeClusterJ extends NDBBaseTest {
     Assert.assertTrue(resourceFinal.getParent() == hopResourceOrigin.
             getParent());
 
-    List<JustLaunchedContainers> hopJustLaunchedContainersFinal
-            = hopRMNodeFull.getHopJustLaunchedContainers();
-    for (JustLaunchedContainers justLaunched : hopJustLaunchedContainersFinal) {
-      boolean flag = false;
-      for (ContainerStatus containerStatus : hopRMNodeFull.
-              getHopContainersStatus()) {
-        if (containerStatus.getContainerid().equals(justLaunched.
-                getContainerId())) {
-          flag = true;
-        }
-      }
-
-      Assert.assertTrue(flag);
-      flag = false;
-      for (JustLaunchedContainers justLaunchedOringin
-              : hopJustLaunchedContainers) {
-        if (justLaunchedOringin.getContainerId().equals(justLaunched.
-                getContainerId())) {
-          flag = true;
-          break;
-        }
-      }
-      Assert.assertTrue(flag);
-    }
 
     List<UpdatedContainerInfo> hopUpdatedContainersFinal
             = hopRMNodeFull.getHopUpdatedContainerInfo();
@@ -313,7 +289,6 @@ public class TestFullRMNodeClusterJ extends NDBBaseTest {
     // Node#id is set explicitly to RMNode.id, thus it's never null
     Assert.assertNull("HopNode name should not exist (null)", hopRMNodeFull.getHopNode().getName());
     Assert.assertNull("NodeHBResponse response should be null", hopRMNodeFull.getHopNodeHBResponse());
-    Assert.assertNull("justlaunchedcontainers should be null", hopRMNodeFull.getHopJustLaunchedContainers());
     Assert.assertNull("updatedcontainerinfo should be null", hopRMNodeFull.getHopUpdatedContainerInfo());
     Assert.assertNull("containeridtoclean should be null", hopRMNodeFull.getHopContainerIdsToClean());
     Assert.assertNull("finishedapplications should be null", hopRMNodeFull.getHopFinishedApplications());

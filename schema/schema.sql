@@ -475,7 +475,6 @@ CREATE TABLE `yarn_rmnode` (
   `currentstate` VARCHAR(45) NULL,
   `overcommittimeout` INT NULL,
   `nodemanager_version` VARCHAR(45) NULL,
-  `uci_id` INT NULL,
   `pendingeventid` INT,
   PRIMARY KEY (`rmnodeid`))
 ENGINE = ndbcluster DEFAULT CHARSET=latin1
@@ -919,8 +918,8 @@ delimiter $$
 
 CREATE TABLE `yarn_projects_quota` (
   `projectname` VARCHAR(100) NOT NULL,
-  `total` INT(11) DEFAULT '0',
-  `quota_remaining` INT(11)  DEFAULT '0',
+  `total` FLOAT DEFAULT '0',
+  `quota_remaining` FLOAT  DEFAULT '0',
   PRIMARY KEY (`projectname`),
   KEY total_idx(`total`),
   KEY quota_remaining_idx(`quota_remaining`))
@@ -933,6 +932,7 @@ CREATE TABLE `yarn_containers_logs` (
   `start` BIGINT NOT NULL,
   `stop` BIGINT  DEFAULT NULL,
   `exit_status` INT  DEFAULT NULL,
+  `price` FLOAT  DEFAULT NULL,
   PRIMARY KEY (`container_id`))
 ENGINE = ndbcluster $$
 #PARTITION BY KEY(container_id)$$
@@ -943,7 +943,7 @@ CREATE TABLE `yarn_projects_daily_cost` (
   `user` VARCHAR(255) NOT NULL,
   `projectname` VARCHAR(100) NOT NULL,
   `day` BIGINT NOT NULL,
-  `credits_used` INT  DEFAULT NULL,
+  `credits_used` FLOAT  DEFAULT NULL,
   PRIMARY KEY (`projectname`, `day`, `user`))
 ENGINE = ndbcluster PARTITION BY KEY(day)$$
 
@@ -952,8 +952,26 @@ delimiter $$
 CREATE TABLE `yarn_containers_checkpoint` (
   `container_id` VARCHAR(255) NOT NULL,
   `checkpoint` BIGINT NOT NULL,
+  `price` FLOAT NOT NULL,
   PRIMARY KEY (`container_id`))
 ENGINE = ndbcluster PARTITION BY KEY(container_id)$$
+
+delimiter $$
+
+CREATE TABLE `yarn_running_price` (
+  `id` VARCHAR(255) NOT NULL,
+  `time` BIGINT NOT NULL,
+  `price` FLOAT NOT NULL,
+  PRIMARY KEY (`id`))
+ENGINE = ndbcluster$$
+
+delimiter $$
+
+CREATE TABLE `yarn_history_price` (
+  `time` BIGINT NOT NULL,
+  `price` FLOAT NOT NULL,
+  PRIMARY KEY (`time`))
+ENGINE = ndbcluster$$
 
 delimiter $$
 
