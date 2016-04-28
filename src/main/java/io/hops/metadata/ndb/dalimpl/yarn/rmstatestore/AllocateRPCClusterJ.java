@@ -29,7 +29,8 @@ import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
 import io.hops.metadata.ndb.wrapper.HopsSession;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.AllocateRPCDataAccess;
-import io.hops.metadata.yarn.entity.appmasterrpc.AllocateRPC;
+import io.hops.metadata.yarn.entity.appmasterrpc.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -258,6 +259,146 @@ public class AllocateRPCClusterJ implements AllocateRPCDataAccess<AllocateRPC>,
     session.release(resourceIncQueryResults);
 
     return result;
+  }
+
+  @Override
+  public void removeAll(List<ToRemoveRPC> allocRPCs, List<ToRemoveAllocAsk> allocAsks,
+          List<ToRemoveBlacklist> allocBlAdd, List<ToRemoveBlacklist> allocBlRem,
+          List<ToRemoveResource> allocReleases, List<ToRemoveResource> allocIncrease) throws StorageException {
+
+    if (allocRPCs.isEmpty()
+            && allocAsks.isEmpty()
+            && allocBlAdd.isEmpty()
+            && allocBlRem.isEmpty()
+            && allocReleases.isEmpty()
+            && allocIncrease.isEmpty()) {
+      return;
+    }
+
+    HopsSession session = connector.obtainSession();
+
+    List<AllocateRPCDTO> allocRPCsToRem = createRemovableAllocRPC(allocRPCs, session);
+    List<AskDTO> allocAskToRem = createRemovableAskRPC(allocAsks, session);
+    List<BlackListAdditionDTO> allocBlAddToRem = createRemovableBlacklist(allocBlAdd,
+            session, BlackListAdditionDTO.class);
+    List<BlackListRemovalDTO> allocBlRemToRem = createRemovableBlacklist(allocBlRem,
+            session, BlackListRemovalDTO.class);
+    List<ReleaseDTO> allocReleasesToRem = createRemovableResouce(allocReleases,
+            session, ReleaseDTO.class);
+    List<ResourceIncreaseRequestDTO> allocIncreaseToRem = createRemovableResouce(allocIncrease,
+            session, ResourceIncreaseRequestDTO.class);
+
+    if (allocRPCsToRem != null) {
+      session.deletePersistentAll(allocRPCsToRem);
+      session.release(allocRPCsToRem);
+    }
+
+    if (allocAskToRem != null) {
+      session.deletePersistentAll(allocAskToRem);
+      session.release(allocAskToRem);
+    }
+
+    if (allocBlAddToRem != null) {
+      session.deletePersistentAll(allocBlAddToRem);
+      session.release(allocBlAddToRem);
+    }
+
+    if (allocBlRemToRem != null) {
+      session.deletePersistentAll(allocBlRemToRem);
+      session.release(allocBlRemToRem);
+    }
+
+    if (allocReleasesToRem != null) {
+      session.deletePersistentAll(allocReleasesToRem);
+      session.release(allocReleasesToRem);
+    }
+
+    if (allocIncreaseToRem != null) {
+      session.deletePersistentAll(allocIncreaseToRem);
+      session.release(allocIncreaseToRem);
+    }
+  }
+
+  private List<AllocateRPCDTO> createRemovableAllocRPC(List<ToRemoveRPC> toRemove,
+          HopsSession session) throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<AllocateRPCDTO> allocToRemove =
+            new ArrayList<AllocateRPCDTO>(toRemove.size());
+    for (ToRemoveRPC rpc : toRemove) {
+      AllocateRPCDTO dto = session.newInstance(AllocateRPCDTO.class, rpc.getRpcId());
+      allocToRemove.add(dto);
+    }
+
+    return allocToRemove;
+  }
+
+  private List<AskDTO> createRemovableAskRPC(List<ToRemoveAllocAsk> toRemove, HopsSession session)
+    throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<AskDTO> askToRemove = new ArrayList<AskDTO>(toRemove.size());
+    for (ToRemoveAllocAsk rpc : toRemove) {
+      Object[] dtoParam = new Object[2];
+      dtoParam[0] = rpc.getRpcId();
+      dtoParam[1] = rpc.getRequestId();
+
+      AskDTO dto = session.newInstance(AskDTO.class, dtoParam);
+      askToRemove.add(dto);
+    }
+
+    return askToRemove;
+  }
+
+  private <T> List<T> createRemovableBlacklist(
+          List<ToRemoveBlacklist> toRemove, HopsSession session,
+          Class<T> type)
+    throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<T> blToRemove =
+            new ArrayList<T>(toRemove.size());
+    for (ToRemoveBlacklist rpc : toRemove) {
+      Object[] dtoParam = new Object[2];
+      dtoParam[0] = rpc.getRpcId();
+      dtoParam[1] = rpc.getResource();
+
+      T dto = session.newInstance(type, dtoParam);
+      blToRemove.add(dto);
+    }
+
+    return blToRemove;
+  }
+
+  private <T> List<T> createRemovableResouce(
+          List<ToRemoveResource> toRemove, HopsSession session,
+          Class<T> type) throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<T> resourceToRemove =
+            new ArrayList<T>(toRemove.size());
+    for (ToRemoveResource rpc : toRemove) {
+      Object[] dtoParam = new Object[2];
+      dtoParam[0] = rpc.getRpcId();
+      dtoParam[1] = rpc.getContainerId();
+
+      T dto = session.newInstance(type, dtoParam);
+      resourceToRemove.add(dto);
+    }
+
+    return resourceToRemove;
   }
 
   private AllocateRPCDTO createPersistableAllocateRPC(AllocateRPC rpc,

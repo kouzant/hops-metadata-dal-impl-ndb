@@ -23,18 +23,13 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
-import io.hops.metadata.ndb.wrapper.HopsQuery;
-import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
-import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
-import io.hops.metadata.ndb.wrapper.HopsSession;
+import io.hops.metadata.ndb.wrapper.*;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.HeartBeatRPCDataAccess;
-import io.hops.metadata.yarn.entity.appmasterrpc.HeartBeatRPC;
-import io.hops.metadata.yarn.entity.appmasterrpc.ToRemoveHBContainerStatus;
-import io.hops.metadata.yarn.entity.appmasterrpc.ToRemoveHBKeepAliveApp;
-import io.hops.metadata.yarn.entity.appmasterrpc.ToRemoveRPC;
+import io.hops.metadata.yarn.entity.appmasterrpc.*;
 
 import javax.annotation.OverridingMethodsMustInvokeSuper;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -167,18 +162,27 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
             createRemovableHBKeepAliveApps(hbKeepAliveAppsToRemove, session);
 
     if (hbToRemove != null) {
+      //long startTime = System.currentTimeMillis();
       session.deletePersistentAll(hbToRemove);
       session.release(hbToRemove);
+      //session.flush();
+      //System.out.println("hbToRemove: " + (System.currentTimeMillis() - startTime));
     }
 
     if (hbContStat != null) {
+      //long startTime = System.currentTimeMillis();
       session.deletePersistentAll(hbContStat);
       session.release(hbContStat);
+      //session.flush();
+      //System.out.println("hbContStat: " + (System.currentTimeMillis() - startTime));
     }
 
     if (hbKeepAlive != null) {
+      //long startTime = System.currentTimeMillis();
       session.deletePersistentAll(hbKeepAlive);
       session.release(hbKeepAlive);
+      //session.flush();
+      //System.out.println("hbKeepAlive: " + (System.currentTimeMillis() - startTime));
     }
   }
 
@@ -189,12 +193,14 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
       return null;
     }
 
+    long startTime = System.currentTimeMillis();
     List<HeartBeatRPCDTO> hbToRemove = new ArrayList<HeartBeatRPCDTO>(toRemove.size());
     for (ToRemoveRPC rpc : toRemove) {
       HeartBeatRPCDTO hbDTO = session.newInstance(HeartBeatRPCDTO.class, rpc.getRpcId());
       hbToRemove.add(hbDTO);
     }
 
+    System.out.println("Time to createRemovableHBRPCs: " + (System.currentTimeMillis() - startTime));
     return hbToRemove;
   }
 
@@ -206,6 +212,7 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
       return null;
     }
 
+    long startTime = System.currentTimeMillis();
     List<HeartBeatContainerStatusDTO> hbToRemove =
             new ArrayList<HeartBeatContainerStatusDTO>(toRemove.size());
     for (ToRemoveHBContainerStatus rpc : toRemove) {
@@ -215,9 +222,11 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
 
       HeartBeatContainerStatusDTO hbDTO = session
               .newInstance(HeartBeatContainerStatusDTO.class, dtoParam);
+
       hbToRemove.add(hbDTO);
     }
 
+    System.out.println("Time to createRemovableHBContainerStatuses: " + (System.currentTimeMillis() - startTime));
     return hbToRemove;
   }
 
@@ -229,6 +238,7 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
       return null;
     }
 
+    long startTime = System.currentTimeMillis();
     List<HeartBeatKeepAliveApplicationDTO> hbToRemove =
             new ArrayList<HeartBeatKeepAliveApplicationDTO>(toRemove.size());
     for (ToRemoveHBKeepAliveApp rpc : toRemove) {
@@ -238,9 +248,11 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
 
       HeartBeatKeepAliveApplicationDTO hbDTO = session
               .newInstance(HeartBeatKeepAliveApplicationDTO.class, dtoParam);
+
       hbToRemove.add(hbDTO);
     }
 
+    System.out.println("Time to createRemovableHBKeepAliveApps: " + (System.currentTimeMillis() - startTime));
     return hbToRemove;
   }
 

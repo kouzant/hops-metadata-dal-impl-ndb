@@ -125,21 +125,7 @@ import io.hops.metadata.ndb.dalimpl.yarn.fair.FSSchedulerNodeClusterJ;
 import io.hops.metadata.ndb.dalimpl.yarn.fair.LocalityLevelClusterJ;
 import io.hops.metadata.ndb.dalimpl.yarn.fair.PreemptionMapClusterJ;
 import io.hops.metadata.ndb.dalimpl.yarn.fair.RunnableAppsClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.AllocateRPCClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.AllocateResponseClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.AllocatedContainersClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.ApplicationAttemptStateClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.ApplicationStateClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.CompletedContainersStatusClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.DelegationKeyClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.DelegationTokenClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.HeartBeatRPCClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.RMStateVersionClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.RPCClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.RanNodeClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.SecretMamagerKeysClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.SequenceNumberClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.UpdatedNodeClusterJ;
+import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.*;
 import io.hops.metadata.ndb.mysqlserver.MysqlServerConnector;
 import io.hops.metadata.yarn.dal.AppSchedulingInfoBlacklistDataAccess;
 import io.hops.metadata.yarn.dal.AppSchedulingInfoDataAccess;
@@ -182,21 +168,7 @@ import io.hops.metadata.yarn.dal.fair.FSSchedulerNodeDataAccess;
 import io.hops.metadata.yarn.dal.fair.LocalityLevelDataAccess;
 import io.hops.metadata.yarn.dal.fair.PreemptionMapDataAccess;
 import io.hops.metadata.yarn.dal.fair.RunnableAppsDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.AllocateRPCDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.AllocateResponseDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.AllocatedContainersDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.ApplicationAttemptStateDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.ApplicationStateDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.CompletedContainersStatusDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.DelegationKeyDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.DelegationTokenDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.HeartBeatRPCDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.RMStateVersionDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.RPCDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.RanNodeDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.SecretMamagerKeysDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.SequenceNumberDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.UpdatedNodeDataAccess;
+import io.hops.metadata.yarn.dal.rmstatestore.*;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -362,6 +334,7 @@ public class NdbStorageFactory implements DalStorageFactory {
     
     dataAccessMap.put(YarnRunningPriceDataAccess.class, new YarnRunningPriceClusterJ());
     dataAccessMap.put(YarnHistoryPriceDataAccess.class, new YarnHistoryPriceClusterJ());
+    dataAccessMap.put(GarbageCollectorRPCDataAccess.class, new GarbageCollectorRPCClusterJ());
   }
 
   @Override
