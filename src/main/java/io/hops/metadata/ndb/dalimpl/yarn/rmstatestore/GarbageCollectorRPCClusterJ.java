@@ -97,6 +97,22 @@ public class GarbageCollectorRPCClusterJ implements TablesDef.GarbageCollectorRP
         return resultlist;
     }
 
+    @Override
+    // Mostly for testing, use the getSubset instead
+    public List<GarbageCollectorRPC> getAll() throws StorageException {
+        HopsSession session = connector.obtainSession();
+        HopsQueryBuilder qb = session.getQueryBuilder();
+        HopsQueryDomainType<GarbageCollectorDTO> qdt = qb
+                .createQueryDefinition(GarbageCollectorDTO.class);
+        HopsQuery<GarbageCollectorDTO> query = session.createQuery(qdt);
+        List<GarbageCollectorDTO> queryResultList = query.getResultList();
+
+        List<GarbageCollectorRPC> resultList = createHopsGCRPC(queryResultList);
+        session.release(queryResultList);
+
+        return resultList;
+    }
+
     private GarbageCollectorDTO createPersistable(GarbageCollectorRPC rpc, HopsSession session)
         throws StorageException {
         GarbageCollectorDTO dto = session.newInstance(GarbageCollectorDTO.class);

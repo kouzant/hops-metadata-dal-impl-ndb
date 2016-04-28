@@ -142,24 +142,17 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
     session.release(keepAliveDTOs);
   }
 
-  public void removeAll(List<ToRemoveRPC> hbRPCsToRemove,
-          List<ToRemoveHBContainerStatus> hbContStatusesToRemove,
-          List<ToRemoveHBKeepAliveApp> hbKeepAliveAppsToRemove)
+  @Override
+  public void removeAll(List<RPC> hbRPCsToRemove)
     throws StorageException {
 
-    if (hbRPCsToRemove.isEmpty()
-            && hbContStatusesToRemove.isEmpty()
-            && hbKeepAliveAppsToRemove.isEmpty()) {
+    if (hbRPCsToRemove.isEmpty()) {
       return;
     }
 
     HopsSession session = connector.obtainSession();
 
     List<HeartBeatRPCDTO> hbToRemove = createRemovableHBRPCs(hbRPCsToRemove, session);
-    List<HeartBeatContainerStatusDTO> hbContStat =
-            createRemovableHBContainerStatuses(hbContStatusesToRemove, session);
-    List<HeartBeatKeepAliveApplicationDTO> hbKeepAlive =
-            createRemovableHBKeepAliveApps(hbKeepAliveAppsToRemove, session);
 
     if (hbToRemove != null) {
       //long startTime = System.currentTimeMillis();
@@ -168,92 +161,29 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
       //session.flush();
       //System.out.println("hbToRemove: " + (System.currentTimeMillis() - startTime));
     }
-
-    if (hbContStat != null) {
-      //long startTime = System.currentTimeMillis();
-      session.deletePersistentAll(hbContStat);
-      session.release(hbContStat);
-      //session.flush();
-      //System.out.println("hbContStat: " + (System.currentTimeMillis() - startTime));
-    }
-
-    if (hbKeepAlive != null) {
-      //long startTime = System.currentTimeMillis();
-      session.deletePersistentAll(hbKeepAlive);
-      session.release(hbKeepAlive);
-      //session.flush();
-      //System.out.println("hbKeepAlive: " + (System.currentTimeMillis() - startTime));
-    }
   }
 
-  private List<HeartBeatRPCDTO> createRemovableHBRPCs(List<ToRemoveRPC> toRemove, HopsSession session)
-          throws StorageException {
-
-    if (toRemove.isEmpty()) {
-      return null;
+  @Override
+  public void removeGarbage(List<RPC> rpcsToRemove) throws StorageException {
+    if (rpcsToRemove.isEmpty()) {
+      return;
     }
 
-    long startTime = System.currentTimeMillis();
-    List<HeartBeatRPCDTO> hbToRemove = new ArrayList<HeartBeatRPCDTO>(toRemove.size());
-    for (ToRemoveRPC rpc : toRemove) {
-      HeartBeatRPCDTO hbDTO = session.newInstance(HeartBeatRPCDTO.class, rpc.getRpcId());
-      hbToRemove.add(hbDTO);
+    HopsSession session = connector.obtainSession();
+
+    HopsQuery<HeartBeatContainerStatusDTO> removeContStat =
+            createGarbageCollectionQuery(session, HeartBeatContainerStatusDTO.class);
+    HopsQuery<HeartBeatKeepAliveApplicationDTO> removeKeepAlive =
+            createGarbageCollectionQuery(session, HeartBeatKeepAliveApplicationDTO.class);
+
+    for (RPC rpc : rpcsToRemove) {
+      int rpcId = rpc.getRPCId();
+      removeContStat.setParameter(TablesDef.HeartBeatContainerStatusesTableDef.RPCID, rpcId);
+      removeKeepAlive.setParameter(TablesDef.HeartBeatKeepAliveApplications.RPCID, rpcId);
+
+      removeContStat.deletePersistentAll();
+      removeKeepAlive.deletePersistentAll();
     }
-
-    System.out.println("Time to createRemovableHBRPCs: " + (System.currentTimeMillis() - startTime));
-    return hbToRemove;
-  }
-
-  private List<HeartBeatContainerStatusDTO> createRemovableHBContainerStatuses(
-          List<ToRemoveHBContainerStatus> toRemove, HopsSession session)
-    throws StorageException {
-
-    if (toRemove.isEmpty()) {
-      return null;
-    }
-
-    long startTime = System.currentTimeMillis();
-    List<HeartBeatContainerStatusDTO> hbToRemove =
-            new ArrayList<HeartBeatContainerStatusDTO>(toRemove.size());
-    for (ToRemoveHBContainerStatus rpc : toRemove) {
-      Object[] dtoParam = new Object[2];
-      dtoParam[0] = rpc.getRpcId();
-      dtoParam[1] = rpc.getContainerId();
-
-      HeartBeatContainerStatusDTO hbDTO = session
-              .newInstance(HeartBeatContainerStatusDTO.class, dtoParam);
-
-      hbToRemove.add(hbDTO);
-    }
-
-    System.out.println("Time to createRemovableHBContainerStatuses: " + (System.currentTimeMillis() - startTime));
-    return hbToRemove;
-  }
-
-  private List<HeartBeatKeepAliveApplicationDTO> createRemovableHBKeepAliveApps(
-          List<ToRemoveHBKeepAliveApp> toRemove, HopsSession session)
-    throws StorageException {
-
-    if(toRemove.isEmpty()) {
-      return null;
-    }
-
-    long startTime = System.currentTimeMillis();
-    List<HeartBeatKeepAliveApplicationDTO> hbToRemove =
-            new ArrayList<HeartBeatKeepAliveApplicationDTO>(toRemove.size());
-    for (ToRemoveHBKeepAliveApp rpc : toRemove) {
-      Object[] dtoParam = new Object[2];
-      dtoParam[0] = rpc.getRpcId();
-      dtoParam[1] = rpc.getAppId();
-
-      HeartBeatKeepAliveApplicationDTO hbDTO = session
-              .newInstance(HeartBeatKeepAliveApplicationDTO.class, dtoParam);
-
-      hbToRemove.add(hbDTO);
-    }
-
-    System.out.println("Time to createRemovableHBKeepAliveApps: " + (System.currentTimeMillis() - startTime));
-    return hbToRemove;
   }
 
   @Override
@@ -290,6 +220,43 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
     session.release(hbContainerStatusQueryResults);
 
     return result;
+  }
+
+  private <T> HopsQuery<T> createGarbageCollectionQuery(HopsSession session, Class<T> type)
+          throws StorageException {
+    HopsQueryBuilder qb = session.getQueryBuilder();
+    HopsQueryDomainType<T> qdt = qb.createQueryDefinition(type);
+    HopsPredicate pred;
+
+    if (type.equals(HeartBeatContainerStatusDTO.class)) {
+      pred = qdt.get(TablesDef.HeartBeatContainerStatusesTableDef.RPCID)
+              .equal(qdt.param(TablesDef.HeartBeatContainerStatusesTableDef.RPCID));
+    } else if (type.equals(HeartBeatKeepAliveApplicationDTO.class)) {
+      pred = qdt.get(TablesDef.HeartBeatKeepAliveApplications.RPCID)
+              .equal(qdt.param(TablesDef.HeartBeatKeepAliveApplications.RPCID));
+    } else {
+      throw new StorageException("Class type not supported");
+    }
+
+    qdt.where(pred);
+
+    return session.createQuery(qdt);
+  }
+
+  private List<HeartBeatRPCDTO> createRemovableHBRPCs(List<RPC> toRemove, HopsSession session)
+          throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<HeartBeatRPCDTO> hbToRemove = new ArrayList<HeartBeatRPCDTO>(toRemove.size());
+    for (RPC rpc : toRemove) {
+      HeartBeatRPCDTO hbDTO = session.newInstance(HeartBeatRPCDTO.class, rpc.getRPCId());
+      hbToRemove.add(hbDTO);
+    }
+
+    return hbToRemove;
   }
 
   private HeartBeatRPCDTO createPersistableHeartBeatRPC(HeartBeatRPC hop,
