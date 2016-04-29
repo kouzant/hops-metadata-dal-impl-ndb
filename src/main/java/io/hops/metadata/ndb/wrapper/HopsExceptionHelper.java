@@ -20,6 +20,7 @@ package io.hops.metadata.ndb.wrapper;
 
 import com.mysql.clusterj.ClusterJDatastoreException;
 import com.mysql.clusterj.ClusterJException;
+import io.hops.exception.InconsistentTCBlockException;
 import io.hops.exception.StorageException;
 import io.hops.exception.TransientStorageException;
 import io.hops.exception.TupleAlreadyExistedException;
@@ -30,6 +31,8 @@ public class HopsExceptionHelper {
       return new TransientStorageException(e);
     } else if (isTupleAlreadyExisted(e)) {
       return new TupleAlreadyExistedException(e);
+    } else if (isInconsistentTCBlock(e)) {
+      return new InconsistentTCBlockException(e);
     } else {
       return new StorageException(e);
     }
@@ -65,6 +68,16 @@ public class HopsExceptionHelper {
   private static boolean isTupleAlreadyExisted(ClusterJException e) {
     if (e instanceof  ClusterJDatastoreException) {
       if (e.getMessage().contains("code 630")) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Error in NdbJTie: returnCode -1, code 293, mysqlCode -1, status 2, classification 12, message Inconsistent trigger state in TC block
+  private static boolean isInconsistentTCBlock(ClusterJException ex) {
+    if (ex instanceof ClusterJDatastoreException) {
+      if (ex.getMessage().contains("code 293")) {
         return true;
       }
     }

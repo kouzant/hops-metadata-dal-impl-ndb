@@ -23,13 +23,11 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
-import io.hops.metadata.ndb.wrapper.HopsQuery;
-import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
-import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
-import io.hops.metadata.ndb.wrapper.HopsSession;
+import io.hops.metadata.ndb.wrapper.*;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.AllocateRPCDataAccess;
-import io.hops.metadata.yarn.entity.appmasterrpc.AllocateRPC;
+import io.hops.metadata.yarn.entity.appmasterrpc.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -258,6 +256,106 @@ public class AllocateRPCClusterJ implements AllocateRPCDataAccess<AllocateRPC>,
     session.release(resourceIncQueryResults);
 
     return result;
+  }
+
+  @Override
+  public void removeAll(List<RPC> allocRPCs) throws StorageException {
+
+    if (allocRPCs.isEmpty()) {
+      return;
+    }
+
+    HopsSession session = connector.obtainSession();
+
+    List<AllocateRPCDTO> allocRPCsToRem = createRemovableAllocRPC(allocRPCs, session);
+
+    if (allocRPCsToRem != null) {
+      session.deletePersistentAll(allocRPCsToRem);
+      session.release(allocRPCsToRem);
+    }
+  }
+
+  @Override
+  public void removeGarbage(List<RPC> rpcsToRemove) throws StorageException {
+    if (rpcsToRemove.isEmpty()) {
+      return;
+    }
+
+    HopsSession session = connector.obtainSession();
+    HopsQuery<AskDTO> removeAsk = createGarbageCollectionQuery(session, AskDTO.class);
+    HopsQuery<BlackListAdditionDTO> removeBlAdd =
+            createGarbageCollectionQuery(session, BlackListAdditionDTO.class);
+    HopsQuery<BlackListRemovalDTO> removeBlRemove =
+            createGarbageCollectionQuery(session, BlackListRemovalDTO.class);
+    HopsQuery<ReleaseDTO> removeRelease =
+            createGarbageCollectionQuery(session, ReleaseDTO.class);
+    HopsQuery<ResourceIncreaseRequestDTO> removeIncrease =
+            createGarbageCollectionQuery(session, ResourceIncreaseRequestDTO.class);
+
+    for (RPC rpc : rpcsToRemove) {
+      int rpcId = rpc.getRPCId();
+      removeAsk.setParameter(TablesDef.AllocateRPCAsk.RPCID, rpcId);
+      removeBlAdd.setParameter(TablesDef.AllocateRPCBlackListAdd.RPCID, rpcId);
+      removeBlRemove.setParameter(TablesDef.AllocateRPCBlackListRemove.RPCID, rpcId);
+      removeRelease.setParameter(TablesDef.AllocateRPCRelease.RPCID, rpcId);
+      removeIncrease.setParameter(TablesDef.AllocateRPCResourceIncrease.RPCID, rpcId);
+
+      removeAsk.deletePersistentAll();
+      removeBlAdd.deletePersistentAll();
+      removeBlRemove.deletePersistentAll();
+      removeRelease.deletePersistentAll();
+      removeIncrease.deletePersistentAll();
+    }
+
+  }
+
+  private <T> HopsQuery<T> createGarbageCollectionQuery(HopsSession session, Class<T> type)
+          throws StorageException {
+    HopsQueryBuilder qb = session.getQueryBuilder();
+    HopsQueryDomainType<T> qdt = qb.createQueryDefinition(type);
+    HopsPredicate pred;
+
+    if (type.equals(AskDTO.class)) {
+      pred = qdt.get(TablesDef.AllocateRPCAsk.RPCID)
+              .equal(qdt.param(TablesDef.AllocateRPCAsk.RPCID));
+
+    } else if (type.equals(BlackListAdditionDTO.class)) {
+      pred = qdt.get(TablesDef.AllocateRPCBlackListAdd.RPCID)
+              .equal(qdt.param(TablesDef.AllocateRPCBlackListAdd.RPCID));
+
+    } else if (type.equals(BlackListRemovalDTO.class)) {
+      pred = qdt.get(TablesDef.AllocateRPCBlackListRemove.RPCID)
+              .equal(qdt.param(TablesDef.AllocateRPCBlackListRemove.RPCID));
+    } else if (type.equals(ReleaseDTO.class)) {
+      pred = qdt.get(TablesDef.AllocateRPCRelease.RPCID)
+              .equal(qdt.param(TablesDef.AllocateRPCRelease.RPCID));
+    } else if (type.equals(ResourceIncreaseRequestDTO.class)) {
+      pred = qdt.get(TablesDef.AllocateRPCResourceIncrease.RPCID)
+              .equal(qdt.param(TablesDef.AllocateRPCResourceIncrease.RPCID));
+    } else {
+      throw new StorageException("Class type not supported");
+    }
+
+    qdt.where(pred);
+
+    return session.createQuery(qdt);
+  }
+
+  private List<AllocateRPCDTO> createRemovableAllocRPC(List<RPC> toRemove,
+          HopsSession session) throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<AllocateRPCDTO> allocToRemove =
+            new ArrayList<AllocateRPCDTO>(toRemove.size());
+    for (RPC rpc : toRemove) {
+      AllocateRPCDTO dto = session.newInstance(AllocateRPCDTO.class, rpc.getRPCId());
+      allocToRemove.add(dto);
+    }
+
+    return allocToRemove;
   }
 
   private AllocateRPCDTO createPersistableAllocateRPC(AllocateRPC rpc,

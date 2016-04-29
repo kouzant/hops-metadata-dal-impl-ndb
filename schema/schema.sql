@@ -412,13 +412,13 @@ CREATE TABLE `yarn_applicationattemptstate` (
 
 delimiter $$
 
-CREATE TABLE `yarn_appmaster_rpc` (
+  CREATE TABLE `yarn_appmaster_rpc` (
   `rpcid` INT NOT NULL,
   `type` VARCHAR(45) NOT NULL,
   `rpc` VARBINARY(13000) NOT NULL,
   `userid` VARCHAR(250) NULL,
   PRIMARY KEY (`rpcid`)
-) ENGINE=ndbcluster DEFAULT CHARSET=latin1$$
+) ENGINE=ndbcluster DEFAULT CHARSET=latin1 PARTITION BY KEY(rpcid)$$
 
 
 delimiter $$
@@ -975,6 +975,14 @@ ENGINE = ndbcluster$$
 
 delimiter $$
 
+CREATE TABLE `yarn_rpc_gc` (
+  `rpcid` INT NOT NULL,
+  `type` VARCHAR(10) NOT NULL,
+  PRIMARY KEY (`rpcid`))
+ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
+
+delimiter $$
+
 CREATE TABLE `yarn_heartbeat_rpc` (
   `rpcid` INT NOT NULL,
   `nodeid` VARCHAR(255) NOT NULL,
@@ -982,12 +990,7 @@ CREATE TABLE `yarn_heartbeat_rpc` (
   `node_health_status` VARBINARY(1000) NOT NULL,
   `last_container_token_key` VARBINARY(1000) NOT NULL,
   `last_nm_key` VARBINARY(1000) NOT NULL,
-  PRIMARY KEY (`rpcid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -996,12 +999,7 @@ CREATE TABLE `yarn_heartbeat_container_statuses` (
   `rpcid` INT NOT NULL,
   `containerid` VARCHAR(200) NOT NULL,
   `status` VARBINARY(3000) NOT NULL,
-  PRIMARY KEY (`rpcid`, `containerid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `containerid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1009,12 +1007,7 @@ delimiter $$
 CREATE TABLE `yarn_heartbeat_keepalive_app` (
   `rpcid` INT NOT NULL,
   `appid` VARCHAR(255) NOT NULL,
-  PRIMARY KEY (`rpcid`, `appid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `appid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1023,12 +1016,7 @@ CREATE TABLE `yarn_allocate_rpc` (
   `rpcid` INT NOT NULL,
   `progress` float NOT NULL,
   `responseid` INT NOT NULL,
-  PRIMARY KEY (`rpcid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1037,12 +1025,7 @@ CREATE TABLE `yarn_allocate_rpc_ask` (
   `rpcid` INT NOT NULL,
   `requestid` VARCHAR(200) NOT NULL,
   `request` varbinary(1000) NULL,
-  PRIMARY KEY (`rpcid`, `requestid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `requestid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1050,12 +1033,7 @@ delimiter $$
 CREATE TABLE `yarn_allocate_rpc_blacklist_add` (
   `rpcid` INT NOT NULL,
   `resource` VARCHAR(200) NOT NULL,
-  PRIMARY KEY (`rpcid`, `resource`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `resource`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1063,12 +1041,7 @@ delimiter $$
 CREATE TABLE `yarn_allocate_rpc_blacklist_remove` (
   `rpcid` INT NOT NULL,
   `resource` VARCHAR(200) NOT NULL,
-  PRIMARY KEY (`rpcid`, `resource`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `resource`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
@@ -1076,26 +1049,16 @@ delimiter $$
 CREATE TABLE `yarn_allocate_rpc_release` (
   `rpcid` INT NOT NULL,
   `containerid` VARCHAR(200) NOT NULL,
-  PRIMARY KEY (`rpcid`, `containerid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `containerid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$
 
 CREATE TABLE `yarn_allocate_rpc_resource_increase` (
   `rpcid` INT NOT NULL,
-  `containerid` INT NOT NULL,
+  `containerid` VARCHAR(255) NOT NULL,
   `request` varbinary(1000) NULL,
-  PRIMARY KEY (`rpcid`, `containerid`),
-  CONSTRAINT `rpcid`
-    FOREIGN KEY (`rpcid`)
-    REFERENCES `yarn_appmaster_rpc` (`rpcid`)
-    ON DELETE CASCADE
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`rpcid`, `containerid`))
 ENGINE = ndbcluster PARTITION BY KEY(rpcid)$$
 
 delimiter $$

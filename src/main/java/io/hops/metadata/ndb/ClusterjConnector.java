@@ -117,21 +117,7 @@ import io.hops.metadata.yarn.dal.capacity.CSLeafQueuesPendingAppsDataAccess;
 import io.hops.metadata.yarn.dal.capacity.FiCaSchedulerAppReservedContainersDataAccess;
 import io.hops.metadata.yarn.dal.fair.LocalityLevelDataAccess;
 import io.hops.metadata.yarn.dal.fair.RunnableAppsDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.AllocateRPCDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.AllocateResponseDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.AllocatedContainersDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.ApplicationAttemptStateDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.ApplicationStateDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.CompletedContainersStatusDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.DelegationKeyDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.DelegationTokenDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.HeartBeatRPCDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.RMStateVersionDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.RPCDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.RanNodeDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.SecretMamagerKeysDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.SequenceNumberDataAccess;
-import io.hops.metadata.yarn.dal.rmstatestore.UpdatedNodeDataAccess;
+import io.hops.metadata.yarn.dal.rmstatestore.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -420,7 +406,8 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
         CSLeafQueuesPendingAppsDataAccess.class,
         JustFinishedContainersDataAccess.class,
         YarnHistoryPriceDataAccess.class,
-        YarnRunningPriceDataAccess.class);
+        YarnRunningPriceDataAccess.class,
+        GarbageCollectorRPCDataAccess.class);
   }
 
   private boolean format(boolean transactional,
@@ -689,6 +676,8 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
             truncate(transactional, io.hops.metadata.yarn.TablesDef.YarnHistoryPriceTableDef.TABLE_NAME);
           } else if (e==YarnRunningPriceDataAccess.class){
             truncate(transactional, io.hops.metadata.yarn.TablesDef.YarnRunningPriceTableDef.TABLE_NAME);
+          } else if (e== GarbageCollectorRPCDataAccess.class){
+            truncate(transactional, io.hops.metadata.yarn.TablesDef.GarbageCollectorRPC.TABLE_NAME);
           }
         }
         MysqlServerConnector.truncateTable(transactional,

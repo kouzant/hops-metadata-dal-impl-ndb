@@ -23,13 +23,13 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
-import io.hops.metadata.ndb.wrapper.HopsQuery;
-import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
-import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
-import io.hops.metadata.ndb.wrapper.HopsSession;
+import io.hops.metadata.ndb.wrapper.*;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.HeartBeatRPCDataAccess;
-import io.hops.metadata.yarn.entity.appmasterrpc.HeartBeatRPC;
+import io.hops.metadata.yarn.entity.appmasterrpc.*;
+
+import javax.annotation.OverridingMethodsMustInvokeSuper;
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -143,6 +143,50 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
   }
 
   @Override
+  public void removeAll(List<RPC> hbRPCsToRemove)
+    throws StorageException {
+
+    if (hbRPCsToRemove.isEmpty()) {
+      return;
+    }
+
+    HopsSession session = connector.obtainSession();
+
+    List<HeartBeatRPCDTO> hbToRemove = createRemovableHBRPCs(hbRPCsToRemove, session);
+
+    if (hbToRemove != null) {
+      //long startTime = System.currentTimeMillis();
+      session.deletePersistentAll(hbToRemove);
+      session.release(hbToRemove);
+      //session.flush();
+      //System.out.println("hbToRemove: " + (System.currentTimeMillis() - startTime));
+    }
+  }
+
+  @Override
+  public void removeGarbage(List<RPC> rpcsToRemove) throws StorageException {
+    if (rpcsToRemove.isEmpty()) {
+      return;
+    }
+
+    HopsSession session = connector.obtainSession();
+
+    HopsQuery<HeartBeatContainerStatusDTO> removeContStat =
+            createGarbageCollectionQuery(session, HeartBeatContainerStatusDTO.class);
+    HopsQuery<HeartBeatKeepAliveApplicationDTO> removeKeepAlive =
+            createGarbageCollectionQuery(session, HeartBeatKeepAliveApplicationDTO.class);
+
+    for (RPC rpc : rpcsToRemove) {
+      int rpcId = rpc.getRPCId();
+      removeContStat.setParameter(TablesDef.HeartBeatContainerStatusesTableDef.RPCID, rpcId);
+      removeKeepAlive.setParameter(TablesDef.HeartBeatKeepAliveApplications.RPCID, rpcId);
+
+      removeContStat.deletePersistentAll();
+      removeKeepAlive.deletePersistentAll();
+    }
+  }
+
+  @Override
   public Map<Integer, HeartBeatRPC> getAll() throws
           StorageException {
 
@@ -176,6 +220,43 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
     session.release(hbContainerStatusQueryResults);
 
     return result;
+  }
+
+  private <T> HopsQuery<T> createGarbageCollectionQuery(HopsSession session, Class<T> type)
+          throws StorageException {
+    HopsQueryBuilder qb = session.getQueryBuilder();
+    HopsQueryDomainType<T> qdt = qb.createQueryDefinition(type);
+    HopsPredicate pred;
+
+    if (type.equals(HeartBeatContainerStatusDTO.class)) {
+      pred = qdt.get(TablesDef.HeartBeatContainerStatusesTableDef.RPCID)
+              .equal(qdt.param(TablesDef.HeartBeatContainerStatusesTableDef.RPCID));
+    } else if (type.equals(HeartBeatKeepAliveApplicationDTO.class)) {
+      pred = qdt.get(TablesDef.HeartBeatKeepAliveApplications.RPCID)
+              .equal(qdt.param(TablesDef.HeartBeatKeepAliveApplications.RPCID));
+    } else {
+      throw new StorageException("Class type not supported");
+    }
+
+    qdt.where(pred);
+
+    return session.createQuery(qdt);
+  }
+
+  private List<HeartBeatRPCDTO> createRemovableHBRPCs(List<RPC> toRemove, HopsSession session)
+          throws StorageException {
+
+    if (toRemove.isEmpty()) {
+      return null;
+    }
+
+    List<HeartBeatRPCDTO> hbToRemove = new ArrayList<HeartBeatRPCDTO>(toRemove.size());
+    for (RPC rpc : toRemove) {
+      HeartBeatRPCDTO hbDTO = session.newInstance(HeartBeatRPCDTO.class, rpc.getRPCId());
+      hbToRemove.add(hbDTO);
+    }
+
+    return hbToRemove;
   }
 
   private HeartBeatRPCDTO createPersistableHeartBeatRPC(HeartBeatRPC hop,
