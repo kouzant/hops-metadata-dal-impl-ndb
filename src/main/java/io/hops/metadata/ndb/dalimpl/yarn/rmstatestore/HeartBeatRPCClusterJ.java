@@ -28,8 +28,6 @@ import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.HeartBeatRPCDataAccess;
 import io.hops.metadata.yarn.entity.appmasterrpc.*;
 
-import javax.annotation.OverridingMethodsMustInvokeSuper;
-import java.awt.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -155,11 +153,8 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
     List<HeartBeatRPCDTO> hbToRemove = createRemovableHBRPCs(hbRPCsToRemove, session);
 
     if (hbToRemove != null) {
-      //long startTime = System.currentTimeMillis();
       session.deletePersistentAll(hbToRemove);
       session.release(hbToRemove);
-      //session.flush();
-      //System.out.println("hbToRemove: " + (System.currentTimeMillis() - startTime));
     }
   }
 

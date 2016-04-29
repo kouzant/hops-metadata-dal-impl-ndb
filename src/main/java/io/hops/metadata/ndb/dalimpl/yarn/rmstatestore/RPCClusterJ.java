@@ -31,10 +31,8 @@ import io.hops.metadata.ndb.wrapper.HopsSession;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.RPCDataAccess;
 import io.hops.metadata.yarn.entity.appmasterrpc.RPC;
-import io.hops.metadata.yarn.entity.appmasterrpc.ToRemoveRPC;
 import io.hops.util.CompressionUtils;
 
-import javax.annotation.OverridingMethodsMustInvokeSuper;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
