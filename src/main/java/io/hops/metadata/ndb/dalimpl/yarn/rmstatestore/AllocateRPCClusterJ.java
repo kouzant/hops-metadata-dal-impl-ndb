@@ -194,11 +194,17 @@ public class AllocateRPCClusterJ implements AllocateRPCDataAccess<AllocateRPC>,
     }
 
     session.savePersistent(allocateDTO);
-    session.savePersistentAll(askDTOs);
-    session.savePersistentAll(blAdd);
-    session.savePersistentAll(blRemoval);
-    session.savePersistentAll(releaseDTOs);
-    session.savePersistentAll(resourceIncDTOs);
+//    session.savePersistentAll(askDTOs);
+//    session.savePersistentAll(blAdd);
+//    session.savePersistentAll(blRemoval);
+//    session.savePersistentAll(releaseDTOs);
+//    session.savePersistentAll(resourceIncDTOs);
+    session.release(allocateDTO);
+    session.release(askDTOs);
+    session.release(blAdd);
+    session.release(blRemoval);
+    session.release(releaseDTOs);
+    session.release(resourceIncDTOs);
   }
 
   @Override

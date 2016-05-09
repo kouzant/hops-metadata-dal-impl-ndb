@@ -34,12 +34,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
         TablesDef.HeartBeatContainerStatusesTableDef,
         TablesDef.HeartBeatKeepAliveApplications,
         HeartBeatRPCDataAccess<HeartBeatRPC> {
 
+  private final Log LOG = LogFactory.getLog(HeartBeatRPCClusterJ.class);
+  
   @PersistenceCapable(table = TablesDef.HeartBeatRPCTableDef.TABLE_NAME)
   public interface HeartBeatRPCDTO {
 
@@ -135,8 +139,8 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
     }
 
     session.savePersistent(hbDTO);
-    session.savePersistentAll(containerStatusDTOs);
-    session.savePersistentAll(keepAliveDTOs);
+//    session.savePersistentAll(containerStatusDTOs);
+//    session.savePersistentAll(keepAliveDTOs);
     session.release(hbDTO);
     session.release(containerStatusDTOs);
     session.release(keepAliveDTOs);
