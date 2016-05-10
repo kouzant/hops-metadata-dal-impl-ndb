@@ -289,7 +289,6 @@ public class TestFullRMNodeClusterJ extends NDBBaseTest {
     // Node#id is set explicitly to RMNode.id, thus it's never null
     Assert.assertNull("HopNode name should not exist (null)", hopRMNodeFull.getHopNode().getName());
     Assert.assertNull("NodeHBResponse response should be null", hopRMNodeFull.getHopNodeHBResponse());
-    Assert.assertNull("justlaunchedcontainers should be null", hopRMNodeFull.getHopJustLaunchedContainers());
     Assert.assertNull("updatedcontainerinfo should be null", hopRMNodeFull.getHopUpdatedContainerInfo());
     Assert.assertNull("containeridtoclean should be null", hopRMNodeFull.getHopContainerIdsToClean());
     Assert.assertNull("finishedapplications should be null", hopRMNodeFull.getHopFinishedApplications());
