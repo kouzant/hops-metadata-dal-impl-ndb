@@ -95,6 +95,9 @@ public class PendingEventClusterJ
     session.release(dto);
   }
 
+  static int count=0;
+  static long start = System.currentTimeMillis();
+  
   @Override
   public void addAll(Collection<PendingEvent> toAddPendingEvent)
           throws StorageException {
@@ -107,9 +110,16 @@ public class PendingEventClusterJ
                       getType(), pendEvent.getStatus(), pendEvent.getId().getEventId()),
               session);
       toPersist.add(pendingEventDTO);
+      count++;
     }
     session.savePersistentAll(toPersist);
     session.release(toPersist);
+    if(System.currentTimeMillis()-start>=1000){
+      float ps = (float) count / (System.currentTimeMillis()-start)*1000;
+      LOG.info("commited " + count + " pending event " + ps);
+      count=0;
+      start = System.currentTimeMillis();
+    }
   }
 
 

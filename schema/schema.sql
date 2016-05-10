@@ -469,13 +469,11 @@ CREATE TABLE `yarn_rmnode` (
   `httpport` INT NULL,
   `nodeaddress` VARCHAR(255) NULL,
   `httpaddress` VARCHAR(255) NULL,
-  `nodeid` VARCHAR(255) NULL,
   `healthreport` VARCHAR(500) NULL,
   `lasthealthreporttime` BIGINT NULL,
   `currentstate` VARCHAR(45) NULL,
   `overcommittimeout` INT NULL,
   `nodemanager_version` VARCHAR(45) NULL,
-  `uci_id` INT NULL,
   `pendingeventid` INT,
   PRIMARY KEY (`rmnodeid`))
 ENGINE = ndbcluster DEFAULT CHARSET=latin1

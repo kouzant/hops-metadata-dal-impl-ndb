@@ -177,7 +177,7 @@ void HopsEventAPI::initAPI(JavaVM *_ptrJVM, HopsConfigFile *_ptrConf,
 			_ptrConf->GetValue("TIMEOUT_AFTER_FIRST_ALIVE"));
 
 	if (cluster_connection->wait_until_ready(l_iTimeoutForFistAlive,
-			l_iTimeoutAfterFirstAlive)) {
+			l_iTimeoutAfterFirstAlive)<0) {
 		printf("[EventAPI] ########### Cluster was not ready within %d secs.\n",
 				l_iTimeoutForFistAlive);
 		exit(EXIT_FAILURE);

@@ -635,7 +635,7 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
                     io.hops.metadata.yarn.TablesDef.HeartBeatKeepAliveApplications.TABLE_NAME);
             truncate(transactional,
                     io.hops.metadata.yarn.TablesDef.HeartBeatRPCTableDef.TABLE_NAME);
-          } else if (e == HeartBeatRPCDataAccess.class) {
+          } else if (e == AllocateRPCDataAccess.class) {
             truncate(transactional, io.hops.metadata.yarn.TablesDef.AllocateRPC.TABLE_NAME);
             truncate(transactional, io.hops.metadata.yarn.TablesDef.AllocateRPCAsk.TABLE_NAME);
             truncate(transactional, io.hops.metadata.yarn.TablesDef.AllocateRPCBlackListAdd.TABLE_NAME);

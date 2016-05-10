@@ -36,13 +36,13 @@ import java.util.*;
 public class TestDeletionCascade extends NDBBaseTest {
     final static RMNode hopsRMNode0 =
             new RMNode("host0:1234", "hostname0", 1234, 8080, "127.0.0.1", "hop.sics.se",
-                    "healthy", -10L, "running", "blah", 10, 3, 0);
+                    "healthy", -10L, "running", "blah", 10, 0);
     final static RMNode hopsRMNode1 =
             new RMNode("host1:1234", "hostname1", 1234, 8080, "127.0.0.1", "hop.sics.se",
-                    "healthy", -10L, "running", "blah", 10, 3, 0);
+                    "healthy", -10L, "running", "blah", 10, 0);
     final static RMNode hopsRMNode2 =
             new RMNode("host2:1234", "hostname2", 1234, 8080, "127.0.0.1", "hop.sics.se",
-                    "healthy", -10L, "running", "blah", 10, 3, 0);
+                    "healthy", -10L, "running", "blah", 10, 0);
     final static List<RMNode> rmNodes = new ArrayList<RMNode>();
     static {
         rmNodes.add(hopsRMNode0);
