@@ -28,10 +28,7 @@ import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.AllocateRPCDataAccess;
 import io.hops.metadata.yarn.entity.appmasterrpc.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class AllocateRPCClusterJ implements AllocateRPCDataAccess<AllocateRPC>,
         TablesDef.AllocateRPC, TablesDef.AllocateRPCAsk,
@@ -265,7 +262,7 @@ public class AllocateRPCClusterJ implements AllocateRPCDataAccess<AllocateRPC>,
   }
 
   @Override
-  public void removeAll(List<RPC> allocRPCs) throws StorageException {
+  public void removeAll(Collection<RPC> allocRPCs) throws StorageException {
 
     if (allocRPCs.isEmpty()) {
       return;
@@ -347,7 +344,7 @@ public class AllocateRPCClusterJ implements AllocateRPCDataAccess<AllocateRPC>,
     return session.createQuery(qdt);
   }
 
-  private List<AllocateRPCDTO> createRemovableAllocRPC(List<RPC> toRemove,
+  private List<AllocateRPCDTO> createRemovableAllocRPC(Collection<RPC> toRemove,
           HopsSession session) throws StorageException {
 
     if (toRemove.isEmpty()) {

@@ -28,10 +28,8 @@ import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.HeartBeatRPCDataAccess;
 import io.hops.metadata.yarn.entity.appmasterrpc.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -145,7 +143,7 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
   }
 
   @Override
-  public void removeAll(List<RPC> hbRPCsToRemove)
+  public void removeAll(Collection<RPC> hbRPCsToRemove)
     throws StorageException {
 
     if (hbRPCsToRemove.isEmpty()) {
@@ -242,7 +240,7 @@ public class HeartBeatRPCClusterJ implements TablesDef.HeartBeatRPCTableDef,
     return session.createQuery(qdt);
   }
 
-  private List<HeartBeatRPCDTO> createRemovableHBRPCs(List<RPC> toRemove, HopsSession session)
+  private List<HeartBeatRPCDTO> createRemovableHBRPCs(Collection<RPC> toRemove, HopsSession session)
           throws StorageException {
 
     if (toRemove.isEmpty()) {
