@@ -817,6 +817,15 @@ INDEX `responseid` (`responseid` ASC)
 
 delimiter $$
 
+CREATE TABLE `yarn_alloc_resp_gc` (
+  `applicationattemptid` VARCHAR(45) NOT NULL,
+  `response_id` INT NOT NULL,
+  `type` VARCHAR(20) NOT NULL,
+  PRIMARY KEY (`applicationattemptid`, `response_id`, `type`)
+) ENGINE=ndbcluster DEFAULT CHARSET=latin1 PARTITION BY KEY (`applicationattemptid`)$$
+
+delimiter $$
+
 CREATE TABLE `yarn_rms_load` (
   `rmhostname` VARCHAR(100) NOT NULL,
   `load` BIGINT NULL,

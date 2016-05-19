@@ -395,6 +395,7 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
         ContainersCheckPointsDataAccess.class,
         CSLeafQueuesPendingAppsDataAccess.class,
         GarbageCollectorRPCDataAccess.class,
+        GarbageCollectorAllocRespDataAccess.class,
         JustFinishedContainersDataAccess.class);
   }
 
@@ -703,8 +704,10 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
             truncate(transactional, io.hops.metadata.yarn.TablesDef.YarnHistoryPriceTableDef.TABLE_NAME);
           } else if (e==YarnRunningPriceDataAccess.class){
             truncate(transactional, io.hops.metadata.yarn.TablesDef.YarnRunningPriceTableDef.TABLE_NAME);
-          } else if (e== GarbageCollectorRPCDataAccess.class){
+          } else if (e == GarbageCollectorRPCDataAccess.class) {
             truncate(transactional, io.hops.metadata.yarn.TablesDef.GarbageCollectorRPC.TABLE_NAME);
+          } else if (e == GarbageCollectorAllocRespDataAccess.class) {
+            truncate(transactional, io.hops.metadata.yarn.TablesDef.GarbageCollectedAllocateResponsesTableDef.TABLE_NAME);
           }
         }
         MysqlServerConnector.truncateTable(transactional,

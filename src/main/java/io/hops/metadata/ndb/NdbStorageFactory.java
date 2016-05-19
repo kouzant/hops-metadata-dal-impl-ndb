@@ -335,6 +335,7 @@ public class NdbStorageFactory implements DalStorageFactory {
     dataAccessMap.put(YarnRunningPriceDataAccess.class, new YarnRunningPriceClusterJ());
     dataAccessMap.put(YarnHistoryPriceDataAccess.class, new YarnHistoryPriceClusterJ());
     dataAccessMap.put(GarbageCollectorRPCDataAccess.class, new GarbageCollectorRPCClusterJ());
+    dataAccessMap.put(GarbageCollectorAllocRespDataAccess.class, new GarbageCollectorAllocRespClusterJ());
   }
 
   @Override

@@ -18,6 +18,8 @@ import io.hops.metadata.ndb.wrapper.HopsSession;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.rmstatestore.AllocatedContainersDataAccess;
 import io.hops.metadata.yarn.entity.rmstatestore.AllocateResponse;
+
+import java.text.CollationElementIterator;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -74,7 +76,8 @@ public static final Log LOG = LogFactory.getLog(AllocatedContainersClusterJ.clas
       //put new values
       toPersist.addAll(createPersistable(resp, session));
       //remove old values
-      HopsQueryBuilder qb = session.getQueryBuilder();
+      // They are removed async by the GC service
+      /*HopsQueryBuilder qb = session.getQueryBuilder();
       HopsQueryDomainType<AllocatedContainerDTO> dobj = qb.
               createQueryDefinition(AllocatedContainerDTO.class);
       HopsPredicate pred1 = dobj.get(APPLICATIONATTEMPTID).equal(dobj.param(
@@ -83,7 +86,7 @@ public static final Log LOG = LogFactory.getLog(AllocatedContainersClusterJ.clas
       HopsQuery<AllocatedContainerDTO> query = session.createQuery(dobj);
       query.setParameter(APPLICATIONATTEMPTID, resp.getApplicationattemptid());
       remove++;
-      query.deletePersistentAll();
+      query.deletePersistentAll();*/
     }
     tt2 = tt2 + System.currentTimeMillis() - start;
     add += toPersist.size();
@@ -97,6 +100,30 @@ public static final Log LOG = LogFactory.getLog(AllocatedContainersClusterJ.clas
       double avgt3 = tt3 / nbPersist;
       LOG.info("allocated containers update avg time: " + avgt1 + ", " + avgt2
               + ", " + avgt3);
+    }
+  }
+
+  @Override
+  public void removeGarbage(Collection<AllocateResponse> garbage) throws StorageException {
+    if (garbage.isEmpty()) {
+      return;
+    }
+
+    HopsSession session = connector.obtainSession();
+    HopsQueryBuilder qb = session.getQueryBuilder();
+    HopsQueryDomainType<AllocatedContainerDTO> qdt = qb
+            .createQueryDefinition(AllocatedContainerDTO.class);
+    HopsPredicate pred1 = qdt.get(APPLICATIONATTEMPTID).equal(qdt
+            .param(APPLICATIONATTEMPTID));
+    HopsPredicate pred2 = qdt.get(RESPONSEID).equal(qdt
+            .param(RESPONSEID));
+    qdt.where(pred1.and(pred2));
+    HopsQuery<AllocatedContainerDTO> query = session.createQuery(qdt);
+
+    for (AllocateResponse resp : garbage) {
+      query.setParameter(APPLICATIONATTEMPTID, resp.getApplicationattemptid());
+      query.setParameter(RESPONSEID, resp.getResponseId());
+      query.deletePersistentAll();
     }
   }
 
@@ -124,14 +151,14 @@ public static final Log LOG = LogFactory.getLog(AllocatedContainersClusterJ.clas
     }
   }
 
-  public Map<String, List<String>> getAll() throws StorageException {
+  public Map<String, List<AllocateResponse>> getAll() throws StorageException {
     HopsSession session = connector.obtainSession();
     HopsQueryBuilder qb = session.getQueryBuilder();
     HopsQueryDomainType<AllocatedContainerDTO> dobj = qb.createQueryDefinition(
             AllocatedContainerDTO.class);
     HopsQuery<AllocatedContainerDTO> query = session.createQuery(dobj);
     List<AllocatedContainerDTO> queryResults = query.getResultList();
-    Map<String, List<String>> result = createHopAllocatedContainersMap(
+    Map<String, List<AllocateResponse>> result = createHopAllocatedContainersMap(
             queryResults);
     session.release(queryResults);
     return result;
@@ -152,9 +179,9 @@ public static final Log LOG = LogFactory.getLog(AllocatedContainersClusterJ.clas
     return result;
   }
 
-  private Map<String, List<String>> createHopAllocatedContainersMap(
+  private Map<String, List<AllocateResponse>> createHopAllocatedContainersMap(
           List<AllocatedContainerDTO> list) throws StorageException {
-    Map<String, List<String>> allocatedContainersMap
+    /*Map<String, List<String>> allocatedContainersMap
             = new HashMap<String, List<String>>();
 
     for (AllocatedContainerDTO dto : list) {
@@ -165,6 +192,41 @@ public static final Log LOG = LogFactory.getLog(AllocatedContainersClusterJ.clas
       allocatedContainersMap.get(dto.getapplicationattemptid()).add(dto.
               getcontainerid());
     }
+    return allocatedContainersMap;*/
+
+    // <ApplicationAttemptID, <ResponseID, [containerID]>>
+    Map<String, Map<Integer, List<String>>> intermediateMap =
+            new HashMap<String, Map<Integer, List<String>>>();
+
+    Map<String, List<AllocateResponse>> allocatedContainersMap =
+            new HashMap<String, List<AllocateResponse>>();
+
+    for (AllocatedContainerDTO dto : list) {
+      String appAttID = dto.getapplicationattemptid();
+      Integer responseID = dto.getresponseid();
+      String containerID = dto.getcontainerid();
+
+      if (intermediateMap.get(appAttID) == null) {
+        intermediateMap.put(appAttID, new HashMap<Integer, List<String>>());
+      }
+
+      if (intermediateMap.get(appAttID).get(responseID) == null) {
+        intermediateMap.get(appAttID).put(responseID, new ArrayList<String>());
+      }
+
+      intermediateMap.get(appAttID).get(responseID).add(containerID);
+    }
+
+    for (Map.Entry<String, Map<Integer, List<String>>> entry : intermediateMap.entrySet()) {
+      List<AllocateResponse> responses = new ArrayList<AllocateResponse>(entry.getValue().size());
+
+      for (Map.Entry<Integer, List<String>> resp : entry.getValue().entrySet()) {
+        responses.add(AllocateResponse.newAllocRespAllocContInstance(entry.getKey(), resp.getKey(), resp.getValue()));
+      }
+
+      allocatedContainersMap.put(entry.getKey(), responses);
+    }
+
     return allocatedContainersMap;
   }
 }
