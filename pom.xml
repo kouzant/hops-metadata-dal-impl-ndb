@@ -24,10 +24,28 @@
     </dependency>
     
     <dependency>
+      <groupId>com.mysql.clusterj</groupId>
+      <artifactId>clusterj-api</artifactId>
+      <version>7.4.11</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.mysql.clusterj</groupId>
+      <artifactId>clusterj-core</artifactId>
+      <version>7.4.11</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.mysql.clusterj</groupId>
+      <artifactId>clusterj-tie</artifactId>
+      <version>7.4.11</version>
+    </dependency>
+
+    <!--<dependency>
       <groupId>com.mysql.ndb</groupId>
       <artifactId>clusterj-part-key-fix</artifactId>
       <version>7.4.7</version>
-    </dependency>
+    </dependency>-->
 
     <dependency>
       <groupId>mysql</groupId>

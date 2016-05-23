@@ -23,6 +23,7 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
+import io.hops.metadata.ndb.mysqlserver.dtocache.DTOCache;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
 import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
@@ -30,11 +31,9 @@ import io.hops.metadata.ndb.wrapper.HopsSession;
 import io.hops.metadata.yarn.TablesDef;
 import io.hops.metadata.yarn.dal.NextHeartbeatDataAccess;
 import io.hops.metadata.yarn.entity.NextHeartbeat;
-import java.util.ArrayList;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -94,12 +93,14 @@ public class NextHeartbeatClusterJ
   }
 
   @Override
-  public void updateAll(List<NextHeartbeat> toUpdate)
+  public Long updateAll(List<NextHeartbeat> toUpdate)
           throws StorageException {
     HopsSession session = connector.obtainSession();
     List<NextHeartbeatDTO> toPersist = new ArrayList<NextHeartbeatDTO>();
     List<NextHeartbeatDTO> toRemove = new ArrayList<NextHeartbeatDTO>();
 
+    long start = System.currentTimeMillis();
+    
     for (NextHeartbeat hb : toUpdate) {
       NextHeartbeatDTO hbDTO = createPersistable(hb,
               session);
@@ -110,12 +111,17 @@ public class NextHeartbeatClusterJ
         toRemove.add(hbDTO);
       }
     }
+
+    long diff = System.currentTimeMillis() - start;
+
     session.savePersistentAll(toPersist);
     session.flush();
     session.deletePersistentAll(toRemove);
     session.flush();
     session.release(toPersist);
     session.release(toRemove);
+
+    return diff;
   }
 
   public void removeById(String rmNodeId) throws StorageException {
@@ -142,11 +148,18 @@ public class NextHeartbeatClusterJ
 
   private NextHeartbeatDTO createPersistable(NextHeartbeat hopNextHeartbeat,
           HopsSession session) throws StorageException {
-    NextHeartbeatDTO DTO = session.newInstance(NextHeartbeatDTO.class);
+    long start = System.currentTimeMillis();
+    //NextHeartbeatDTO DTO = session.newInstance(NextHeartbeatDTO.class);
+    NextHeartbeatDTO DTO = DTOCache.get(NextHeartbeatDTO.class);
+    //System.out.println("createPersistable: " + (System.currentTimeMillis() - start));
     //Set values to persist new persistedEvent
-    DTO.setrmnodeid(hopNextHeartbeat.getRmnodeid());
-    DTO.setNextheartbeat(booleanToInt(hopNextHeartbeat.isNextheartbeat()));
-    DTO.setpendingeventid(hopNextHeartbeat.getPendingEventId());
+    if (DTO != null) {
+      DTO.setrmnodeid(hopNextHeartbeat.getRmnodeid());
+      DTO.setNextheartbeat(booleanToInt(hopNextHeartbeat.isNextheartbeat()));
+      DTO.setpendingeventid(hopNextHeartbeat.getPendingEventId());
+    } else {
+      LOG.error("*** DTO from cache is NULL!!!");
+    }
     return DTO;
   }
 
