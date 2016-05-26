@@ -18,14 +18,12 @@
  */
 package io.hops.metadata.ndb.wrapper;
 
-import com.mysql.clusterj.ClusterJException;
-import com.mysql.clusterj.LockMode;
-import com.mysql.clusterj.Query;
-import com.mysql.clusterj.Session;
-import com.mysql.clusterj.Transaction;
+import com.mysql.clusterj.*;
 import com.mysql.clusterj.query.QueryBuilder;
 import io.hops.exception.StorageException;
+
 import java.util.Collection;
+import java.util.List;
 
 public class HopsSession {
   private final Session session;
@@ -57,6 +55,50 @@ public class HopsSession {
   public <T> T find(Class<T> aClass, Object o) throws StorageException {
     try {
       return session.find(aClass, o);
+    } catch (ClusterJException e) {
+      throw HopsExceptionHelper.wrap(e);
+    }
+  }
+
+  public void registerType(Class type, int cacheSize) {
+    DTOCache dtoCache = session.getDTOCache();
+    if (dtoCache != null) {
+      dtoCache.registerType(type, cacheSize);
+    }
+  }
+
+  public void deregisterType(Class type) {
+    DTOCache dtoCache = session.getDTOCache();
+    if (dtoCache != null) {
+      dtoCache.deregisterType(type);
+    }
+  }
+
+  public void createDTOCache() {
+    session.createDTOCache();
+  }
+
+  public <T> boolean putToCache(Class<T> type, T element) {
+    DTOCache dtoCache = session.getDTOCache();
+    if (dtoCache != null) {
+      return dtoCache.put(type, element);
+    }
+
+    return false;
+  }
+
+  public List<Class> getNotFullTypes() {
+    DTOCache dtoCache = session.getDTOCache();
+    if (dtoCache != null) {
+      return dtoCache.getNotFullTypes();
+    }
+
+    return null;
+  }
+
+  public <T> T cacheNewInstance(Class<T> type) throws StorageException {
+    try {
+      return session.cacheNewInstance(type);
     } catch (ClusterJException e) {
       throw HopsExceptionHelper.wrap(e);
     }

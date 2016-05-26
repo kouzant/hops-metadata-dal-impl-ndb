@@ -1,7 +1,5 @@
 package io.hops.metadata.ndb.dalimpl.yarn;
 
-import io.hops.metadata.ndb.mysqlserver.dtocache.DTOCache;
-import io.hops.metadata.ndb.mysqlserver.dtocache.DTOGenerator;
 import io.hops.metadata.yarn.dal.NextHeartbeatDataAccess;
 import io.hops.metadata.yarn.dal.util.YARNOperationType;
 import io.hops.metadata.yarn.entity.NextHeartbeat;
@@ -27,13 +25,10 @@ public class BenchDTOCreation extends NDBBaseTest {
     private final List<NextHeartbeat> toPersist =
             new ArrayList<NextHeartbeat>();
 
+    @Ignore
     @Test
     public void createNxtHB() throws Exception {
         FileWriter writer;
-
-        DTOCache.registerType(NextHeartbeatClusterJ.NextHeartbeatDTO.class, 6000);
-        Thread producer = new Thread(new DTOGenerator());
-        producer.start();
 
         for (int i = 0; i < RUNS; ++i) {
             writer = new FileWriter("dto_bench/nxtHB_blah_run" + i, true);
@@ -58,10 +53,8 @@ public class BenchDTOCreation extends NDBBaseTest {
                 writer.flush();
             }
             writer.close();
-            //connector.formatStorage(NextHeartbeatDataAccess.class);
+            connector.formatStorage(NextHeartbeatDataAccess.class);
         }
-
-        producer.interrupt();
     }
 
     private NextHeartbeat createNxtHB(String rmNodeId, boolean flag, int pendingId) {
@@ -86,7 +79,9 @@ public class BenchDTOCreation extends NDBBaseTest {
             NextHeartbeatDataAccess nxtHBDAO = (NextHeartbeatDataAccess) storageFactory
                     .getDataAccess(NextHeartbeatDataAccess.class);
 
-            Long dtoCreationTime = nxtHBDAO.updateAll(toPersist);
+            //Long dtoCreationTime = nxtHBDAO.updateAll(toPersist);
+            nxtHBDAO.updateAll(toPersist);
+            Long dtoCreationTime = -1L;
 
             connector.commit();
             return dtoCreationTime;
