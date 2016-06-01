@@ -23,7 +23,6 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
-import io.hops.metadata.ndb.mysqlserver.dtocache.DTOCache;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
 import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
@@ -93,7 +92,7 @@ public class NextHeartbeatClusterJ
   }
 
   @Override
-  public Long updateAll(List<NextHeartbeat> toUpdate)
+  public void updateAll(List<NextHeartbeat> toUpdate)
           throws StorageException {
     HopsSession session = connector.obtainSession();
     List<NextHeartbeatDTO> toPersist = new ArrayList<NextHeartbeatDTO>();
@@ -121,7 +120,7 @@ public class NextHeartbeatClusterJ
     session.release(toPersist);
     session.release(toRemove);
 
-    return diff;
+    //return diff;
   }
 
   public void removeById(String rmNodeId) throws StorageException {
@@ -149,17 +148,13 @@ public class NextHeartbeatClusterJ
   private NextHeartbeatDTO createPersistable(NextHeartbeat hopNextHeartbeat,
           HopsSession session) throws StorageException {
     long start = System.currentTimeMillis();
-    //NextHeartbeatDTO DTO = session.newInstance(NextHeartbeatDTO.class);
-    NextHeartbeatDTO DTO = DTOCache.get(NextHeartbeatDTO.class);
+    NextHeartbeatDTO DTO = session.newInstance(NextHeartbeatDTO.class);
     //System.out.println("createPersistable: " + (System.currentTimeMillis() - start));
     //Set values to persist new persistedEvent
-    if (DTO != null) {
-      DTO.setrmnodeid(hopNextHeartbeat.getRmnodeid());
-      DTO.setNextheartbeat(booleanToInt(hopNextHeartbeat.isNextheartbeat()));
-      DTO.setpendingeventid(hopNextHeartbeat.getPendingEventId());
-    } else {
-      LOG.error("*** DTO from cache is NULL!!!");
-    }
+    DTO.setrmnodeid(hopNextHeartbeat.getRmnodeid());
+    DTO.setNextheartbeat(booleanToInt(hopNextHeartbeat.isNextheartbeat()));
+    DTO.setpendingeventid(hopNextHeartbeat.getPendingEventId());
+
     return DTO;
   }
 

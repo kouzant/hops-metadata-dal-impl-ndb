@@ -27,9 +27,15 @@ import java.util.List;
 
 public class HopsSession {
   private final Session session;
+  private boolean cachedEnabled;
 
   public HopsSession(Session session) {
     this.session = session;
+    this.cachedEnabled = false;
+  }
+
+  public boolean isCachedEnabled() {
+    return cachedEnabled;
   }
 
   public HopsQueryBuilder getQueryBuilder() throws StorageException {
@@ -76,6 +82,7 @@ public class HopsSession {
 
   public void createDTOCache() {
     session.createDTOCache();
+    cachedEnabled = true;
   }
 
   public <T> boolean putToCache(Class<T> type, T element) {

@@ -64,6 +64,11 @@ public class MysqlServerConnector implements StorageConnector<Connection> {
     this.conf = conf;
   }
 
+  @Override
+  public Connection obtainCachedSession() throws StorageException {
+    return obtainSession();
+  }
+
   private void initializeConnectionPool(Properties conf) {
     HikariConfig config = new HikariConfig();
     config.setMaximumPoolSize(Integer.valueOf(conf.getProperty(
@@ -173,6 +178,11 @@ public class MysqlServerConnector implements StorageConnector<Connection> {
   }
 
   @Override
+  public void beginCachedTransaction() throws StorageException {
+    beginTransaction();
+  }
+
+  @Override
   public void commit() throws StorageException {
     throw new UnsupportedOperationException("Not supported yet.");
   }
@@ -220,6 +230,11 @@ public class MysqlServerConnector implements StorageConnector<Connection> {
   @Override
   public void readCommitted() {
     throw new UnsupportedOperationException("Not supported yet.");
+  }
+
+  @Override
+  public void readCommittedCached() throws StorageException {
+    readCommitted();
   }
 
   @Override

@@ -22,7 +22,7 @@ import com.mysql.clusterj.ClusterJException;
 import com.mysql.clusterj.ClusterJHelper;
 import com.mysql.clusterj.Constants;
 import io.hops.exception.StorageException;
-import io.hops.metadata.ndb.dalimpl.yarn.NextHeartbeatClusterJ;
+import io.hops.metadata.ndb.dalimpl.yarn.*;
 import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.AllocateRPCClusterJ;
 import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.GarbageCollectorRPCClusterJ;
 import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.HeartBeatRPCClusterJ;
@@ -33,16 +33,17 @@ import io.hops.metadata.ndb.wrapper.HopsSessionFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.NoSuchElementException;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class DBSessionProvider implements Runnable {
 
   static final Log LOG = LogFactory.getLog(DBSessionProvider.class);
   static HopsSessionFactory sessionFactory;
+  private ConcurrentLinkedQueue<DBSession> nonCachedSessionPool =
+          new ConcurrentLinkedQueue<DBSession>();
   private ConcurrentLinkedQueue<DBSession> readySessionPool =
       new ConcurrentLinkedQueue<DBSession>();
   private final ConcurrentLinkedQueue<DBSession> preparingSessionPool =
@@ -86,8 +87,13 @@ public class DBSessionProvider implements Runnable {
       throw HopsExceptionHelper.wrap(ex);
     }
 
-    for (int i = 0; i < initialPoolSize; i++) {
-      preparingSessionPool.add(initSession());
+    for (int i = 0; i < initialPoolSize; ++i) {
+      nonCachedSessionPool.add(initSession(false));
+    }
+
+    // TODO: Get number of cached sessions from configuration file
+    for (int i = 0; i < 50; i++) {
+      preparingSessionPool.add(initSession(true));
     }
 
     dtoCacheGenerator = new Thread(new DTOCacheGenerator(this));
@@ -101,18 +107,28 @@ public class DBSessionProvider implements Runnable {
     thread.start();
   }
 
-  private DBSession initSession() throws StorageException {
+  private DBSession initSession(boolean cacheEnabled) throws StorageException {
     Long startTime = System.currentTimeMillis();
     HopsSession session = sessionFactory.getSession();
 
-    session.createDTOCache();
-    // TODO: Is this a good place to register DTOs to cache?
-    session.registerType(NextHeartbeatClusterJ.NextHeartbeatDTO.class, 6000);
+    if (cacheEnabled) {
+      session.createDTOCache();
+      // TODO: Is this a good place to register DTOs to cache?
+      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 400);
+      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 200);
+      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 400);
+      /*session.registerType(JustLaunchedContainersClusterJ.JustLaunchedContainersDTO.class, 300);
+      session.registerType(ContainerIdToCleanClusterJ.ContainerIdToCleanDTO.class, 300);
+      session.registerType(FinishedApplicationsClusterJ.FinishedApplicationsDTO.class, 200);
+      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 500);
+      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 400);*/
+    /*session.registerType(NextHeartbeatClusterJ.NextHeartbeatDTO.class, 500);
     session.registerType(RPCClusterJ.RPCDTO.class, 100);
     session.registerType(HeartBeatRPCClusterJ.HeartBeatRPCDTO.class, 100);
     session.registerType(AllocateRPCClusterJ.AllocateRPCDTO.class, 100);
-    session.registerType(GarbageCollectorRPCClusterJ.GarbageCollectorDTO.class, 100);
+    session.registerType(GarbageCollectorRPCClusterJ.GarbageCollectorDTO.class, 100);*/
 
+    }
     Long sessionCreationTime = (System.currentTimeMillis() - startTime);
     rollingAvg[rollingAvgIndex.incrementAndGet() % rollingAvg.length] =
         sessionCreationTime;
@@ -137,28 +153,46 @@ public class DBSessionProvider implements Runnable {
       dtoCacheGenerator.interrupt();
     }
 
-    while (!readySessionPool.isEmpty()) {
-      DBSession dbsession = readySessionPool.remove();
-      closeSession(dbsession);
+    drainSessionPool(nonCachedSessionPool);
+    drainSessionPool(readySessionPool);
+    drainSessionPool(preparingSessionPool);
+  }
+
+  private void drainSessionPool(ConcurrentLinkedQueue<DBSession> pool) throws StorageException {
+    DBSession session = null;
+    while ((session = pool.poll()) != null) {
+      closeSession(session);
     }
-    while(!preparingSessionPool.isEmpty()) {
-      DBSession dbSession = preparingSessionPool.remove();
-      closeSession(dbSession);
+  }
+
+  public DBSession getCachedSession() throws StorageException {
+    try {
+      DBSession session = readySessionPool.remove();
+      //LOG.info("Using cache enabled session: " + session.toString());
+      return session;
+    } catch (NoSuchElementException e) {
+      try {
+        DBSession session = preparingSessionPool.remove();
+        LOG.info("Using NOT READY session: " + session.toString());
+        return session;
+      } catch (NoSuchElementException e0) {
+        LOG.info("There are no ready, nor preparing sessions, creating a new one");
+        return initSession(true);
+      }
     }
   }
 
   public DBSession getSession() throws StorageException {
     try {
-      DBSession session = readySessionPool.remove();
-      LOG.info("Using session: " + session.toString());
+      DBSession session = nonCachedSessionPool.remove();
       return session;
-    } catch (NoSuchElementException e) {
-      LOG.info("There are no ready, nor preparing sessions, creating a new one");
-      return initSession();
+    } catch (NoSuchElementException ex) {
+      LOG.error("No available cache-disabled session, creating new one");
+      return initSession(false);
     }
   }
 
-  public void returnSession(DBSession returnedSession, boolean forceClose) {
+  public void returnSession(DBSession returnedSession, boolean forceClose, boolean isCacheEnabled) {
     //session has been used, increment the use counter
     returnedSession
         .setSessionUseCount(returnedSession.getSessionUseCount() + 1);
@@ -169,8 +203,12 @@ public class DBSessionProvider implements Runnable {
       toGC.add(returnedSession);
     } else { // increment the count and return it to the pool
       // Put it in the preparing pool so that it gets its cache filled
-      preparingSessionPool.add(returnedSession);
-      LOG.info("Adding to preparing set returned session: " + returnedSession.toString());
+      if (isCacheEnabled) {
+        preparingSessionPool.add(returnedSession);
+      } else {
+        nonCachedSessionPool.add(returnedSession);
+      }
+      //LOG.info("Adding to preparing set returned session: " + returnedSession.toString());
     }
   }
 
@@ -191,8 +229,24 @@ public class DBSessionProvider implements Runnable {
     return readySessionPool.size();
   }
 
-  public ConcurrentLinkedQueue<DBSession> getPreparingSessionPool() {
-    return preparingSessionPool;
+  public List<DBSession> getAllPreparingSessions() {
+    return getPreparingSessions(preparingSessionPool.size());
+  }
+
+  public List<DBSession> getPreparingSessions(int limit) {
+    List<DBSession> returnSet = new ArrayList<DBSession>();
+
+    //LOG.info("Preparing sessions size: " + preparingSessionPool.size());
+    //LOG.info("Ready sessions size: " + readySessionPool.size());
+    DBSession session;
+    while ((session = preparingSessionPool.poll()) != null
+            && limit > 0) {
+      returnSet.add(session);
+      limit--;
+    }
+
+    //LOG.info("Going to prepare: " + returnSet.size() + " sessions");
+    return returnSet;
   }
 
   public ConcurrentLinkedQueue<DBSession> getReadySessionPool() {
@@ -213,8 +267,9 @@ public class DBSessionProvider implements Runnable {
           }
           //System.out.println("CGed " + toGCSize);
 
+          // TODO: Fix this
           for (int i = 0; i < toGCSize; i++) {
-            preparingSessionPool.add(initSession());
+            preparingSessionPool.add(initSession(true));
           }
           //System.out.println("Created " + toGCSize);
         }
@@ -234,9 +289,10 @@ public class DBSessionProvider implements Runnable {
         Thread.sleep(5);
       } catch (NoSuchElementException e) {
         //System.out.print(".");
+        // TODO: Handle this correctly
         for (int i = 0; i < 100; i++) {
           try {
-            readySessionPool.add(initSession());
+            readySessionPool.add(initSession(true));
           } catch (StorageException e1) {
             LOG.error(e1);
           }

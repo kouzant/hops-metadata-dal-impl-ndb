@@ -181,11 +181,27 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
     return dbSession.getSession();
   }
 
+  @Override
+  public HopsSession obtainCachedSession() throws StorageException {
+    DBSession dbSession = sessions.get();
+
+    if (dbSession != null && !dbSession.getSession().isCachedEnabled()) {
+      LOG.error("Ordered cached session but got non-cached");
+    }
+
+    if (dbSession == null) {
+      dbSession = dbSessionProvider.getCachedSession();
+      sessions.set(dbSession);
+    }
+
+    return dbSession.getSession();
+  }
+
   private void returnSession(boolean error) throws StorageException {
     DBSession dbSession = sessions.get();
     sessions.remove(); // remove, and return to the pool
     dbSessionProvider.returnSession(dbSession,
-        error); // if there was an error then close the session
+        error, dbSession.getSession().isCachedEnabled()); // if there was an error then close the session
   }
 
   /**
@@ -196,7 +212,25 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
    */
   @Override
   public void beginTransaction() throws StorageException {
-    HopsSession session = obtainSession();
+    beginTransaction(false);
+  }
+
+  /**
+   * begin a transaction but with a cache-enabled session
+   * @throws StorageException
+   */
+  @Override
+  public void beginCachedTransaction() throws StorageException {
+    beginTransaction(true);
+  }
+
+  private void beginTransaction(boolean cacheEnabled) throws StorageException {
+    HopsSession session;
+    if (cacheEnabled) {
+      session = obtainCachedSession();
+    } else {
+      session = obtainSession();
+    }
     if (session.currentTransaction().isActive()) {
       LOG.fatal("Prevented starting transaction within a transaction.");
       throw new Error("Can not start Tx inside another Tx");
@@ -293,7 +327,21 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
 
   @Override
   public void readCommitted() throws StorageException {
-    HopsSession session = obtainSession();
+    readCommitted(false);
+  }
+
+  @Override
+  public void readCommittedCached() throws StorageException {
+    readCommitted(true);
+  }
+
+  private void readCommitted(boolean isCacheEnabled) throws StorageException {
+    HopsSession session;
+    if (isCacheEnabled) {
+      session = obtainCachedSession();
+    } else {
+      session = obtainSession();
+    }
     session.setLockMode(LockMode.READ_COMMITTED);
   }
 
