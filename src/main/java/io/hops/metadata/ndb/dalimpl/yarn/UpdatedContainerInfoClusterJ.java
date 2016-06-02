@@ -23,6 +23,7 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
+import io.hops.metadata.ndb.cache.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsPredicate;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
@@ -176,8 +177,11 @@ public class UpdatedContainerInfoClusterJ
 
   private UpdatedContainerInfoDTO createPersistable(UpdatedContainerInfo hop,
           HopsSession session) throws StorageException {
+    long start = System.currentTimeMillis();
     UpdatedContainerInfoDTO dto =
         session.newInstance(UpdatedContainerInfoDTO.class);
+    long delta = System.currentTimeMillis() - start;
+    PersistTime.getInstance().writeUpdatedContainerTime(delta);
     dto.setrmnodeid(hop.getRmnodeid());
     dto.setcontainerid(hop.getContainerId());
     dto.setupdatedcontainerinfoid(hop.getUpdatedContainerInfoId());

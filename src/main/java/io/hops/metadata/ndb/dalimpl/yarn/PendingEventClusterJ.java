@@ -23,6 +23,7 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
+import io.hops.metadata.ndb.cache.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsPredicate;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
@@ -199,7 +200,10 @@ public class PendingEventClusterJ
    */
   private PendingEventDTO createPersistable(PendingEvent hopPersistedEvent,
       HopsSession session) throws StorageException {
+    long start = System.currentTimeMillis();
     PendingEventDTO DTO = session.newInstance(PendingEventDTO.class);
+    long delta = System.currentTimeMillis() - start;
+    PersistTime.getInstance().writePendingEventTime(delta);
     //Set values to persist new persistedEvent
     DTO.setrmnodeid(hopPersistedEvent.getId().getNodeId());
     DTO.setType(hopPersistedEvent.getType());

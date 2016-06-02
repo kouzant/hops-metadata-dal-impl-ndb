@@ -23,6 +23,7 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
+import io.hops.metadata.ndb.cache.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
 import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
@@ -149,7 +150,8 @@ public class NextHeartbeatClusterJ
           HopsSession session) throws StorageException {
     long start = System.currentTimeMillis();
     NextHeartbeatDTO DTO = session.newInstance(NextHeartbeatDTO.class);
-    //System.out.println("createPersistable: " + (System.currentTimeMillis() - start));
+    long delta = System.currentTimeMillis() - start;
+    PersistTime.getInstance().writeNextHeartbeatTime(delta);
     //Set values to persist new persistedEvent
     DTO.setrmnodeid(hopNextHeartbeat.getRmnodeid());
     DTO.setNextheartbeat(booleanToInt(hopNextHeartbeat.isNextheartbeat()));

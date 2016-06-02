@@ -23,10 +23,7 @@ import com.mysql.clusterj.ClusterJHelper;
 import com.mysql.clusterj.Constants;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.dalimpl.yarn.*;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.AllocateRPCClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.GarbageCollectorRPCClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.HeartBeatRPCClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.RPCClusterJ;
+import io.hops.metadata.ndb.cache.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsExceptionHelper;
 import io.hops.metadata.ndb.wrapper.HopsSession;
 import io.hops.metadata.ndb.wrapper.HopsSessionFactory;
@@ -101,6 +98,7 @@ public class DBSessionProvider implements Runnable {
     dtoCacheGenerator.setName("DTO Cache Generator");
     dtoCacheGenerator.start();
 
+    PersistTime.getInstance().init();
     thread = new Thread(this, "Session Pool Refresh Daemon");
     thread.setDaemon(true);
     automaticRefresh = true;
@@ -152,6 +150,8 @@ public class DBSessionProvider implements Runnable {
     if (dtoCacheGenerator != null) {
       dtoCacheGenerator.interrupt();
     }
+
+    PersistTime.getInstance().close();
 
     drainSessionPool(nonCachedSessionPool);
     drainSessionPool(readySessionPool);

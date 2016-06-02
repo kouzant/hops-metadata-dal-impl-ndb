@@ -23,6 +23,7 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
+import io.hops.metadata.ndb.cache.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
 import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
@@ -148,8 +149,11 @@ public class NodeHBResponseClusterJ implements TablesDef.NodeHBResponseTableDef,
 
   private NodeHBResponseDTO createPersistable(NodeHBResponse nodehbresponse,
       HopsSession session) throws StorageException {
+    long start = System.currentTimeMillis();
     NodeHBResponseDTO nodeHBResponseDT0 =
         session.newInstance(NodeHBResponseDTO.class);
+    long delta = System.currentTimeMillis() - start;
+    PersistTime.getInstance().writeNodeHBTime(delta);
     nodeHBResponseDT0.setrmnodeid(nodehbresponse.getRMNodeId());
     try {
       nodeHBResponseDT0.setresponse(CompressionUtils.compress(nodehbresponse.
