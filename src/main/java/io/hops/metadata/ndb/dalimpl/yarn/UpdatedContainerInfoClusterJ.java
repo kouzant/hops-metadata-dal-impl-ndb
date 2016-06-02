@@ -177,11 +177,11 @@ public class UpdatedContainerInfoClusterJ
 
   private UpdatedContainerInfoDTO createPersistable(UpdatedContainerInfo hop,
           HopsSession session) throws StorageException {
-    long start = System.currentTimeMillis();
+    //long start = System.currentTimeMillis();
     UpdatedContainerInfoDTO dto =
-        session.newInstance(UpdatedContainerInfoDTO.class);
-    long delta = System.currentTimeMillis() - start;
-    PersistTime.getInstance().writeUpdatedContainerTime(delta);
+        session.newCachedInstance(UpdatedContainerInfoDTO.class);
+    //long delta = System.currentTimeMillis() - start;
+    //PersistTime.getInstance().writeUpdatedContainerTime(delta);
     dto.setrmnodeid(hop.getRmnodeid());
     dto.setcontainerid(hop.getContainerId());
     dto.setupdatedcontainerinfoid(hop.getUpdatedContainerInfoId());

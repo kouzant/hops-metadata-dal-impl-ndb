@@ -95,15 +95,17 @@ public class NextHeartbeatClusterJ
   @Override
   public void updateAll(List<NextHeartbeat> toUpdate)
           throws StorageException {
+    long start = System.currentTimeMillis();
     HopsSession session = connector.obtainSession();
     List<NextHeartbeatDTO> toPersist = new ArrayList<NextHeartbeatDTO>();
     List<NextHeartbeatDTO> toRemove = new ArrayList<NextHeartbeatDTO>();
-
-    long start = System.currentTimeMillis();
     
     for (NextHeartbeat hb : toUpdate) {
+      long startCreate = System.currentTimeMillis();
       NextHeartbeatDTO hbDTO = createPersistable(hb,
               session);
+
+      PersistTime.getInstance().writeNextHeartbeatTime(System.currentTimeMillis() - startCreate);
 
       if (hb.isNextheartbeat()) {
         toPersist.add(hbDTO);
@@ -112,8 +114,6 @@ public class NextHeartbeatClusterJ
       }
     }
 
-    long diff = System.currentTimeMillis() - start;
-
     session.savePersistentAll(toPersist);
     session.flush();
     session.deletePersistentAll(toRemove);
@@ -121,6 +121,8 @@ public class NextHeartbeatClusterJ
     session.release(toPersist);
     session.release(toRemove);
 
+    long diff = System.currentTimeMillis() - start;
+    PersistTime.getInstance().writeTotalPersistTime(diff);
     //return diff;
   }
 
@@ -148,10 +150,7 @@ public class NextHeartbeatClusterJ
 
   private NextHeartbeatDTO createPersistable(NextHeartbeat hopNextHeartbeat,
           HopsSession session) throws StorageException {
-    long start = System.currentTimeMillis();
     NextHeartbeatDTO DTO = session.newInstance(NextHeartbeatDTO.class);
-    long delta = System.currentTimeMillis() - start;
-    PersistTime.getInstance().writeNextHeartbeatTime(delta);
     //Set values to persist new persistedEvent
     DTO.setrmnodeid(hopNextHeartbeat.getRmnodeid());
     DTO.setNextheartbeat(booleanToInt(hopNextHeartbeat.isNextheartbeat()));

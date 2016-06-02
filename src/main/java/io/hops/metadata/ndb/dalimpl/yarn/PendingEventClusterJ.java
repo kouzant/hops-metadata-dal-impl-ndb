@@ -200,10 +200,10 @@ public class PendingEventClusterJ
    */
   private PendingEventDTO createPersistable(PendingEvent hopPersistedEvent,
       HopsSession session) throws StorageException {
-    long start = System.currentTimeMillis();
-    PendingEventDTO DTO = session.newInstance(PendingEventDTO.class);
-    long delta = System.currentTimeMillis() - start;
-    PersistTime.getInstance().writePendingEventTime(delta);
+    //long start = System.currentTimeMillis();
+    PendingEventDTO DTO = session.newCachedInstance(PendingEventDTO.class);
+    //long delta = System.currentTimeMillis() - start;
+    //PersistTime.getInstance().writePendingEventTime(delta);
     //Set values to persist new persistedEvent
     DTO.setrmnodeid(hopPersistedEvent.getId().getNodeId());
     DTO.setType(hopPersistedEvent.getType());

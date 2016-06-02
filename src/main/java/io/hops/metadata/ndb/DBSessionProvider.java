@@ -33,7 +33,6 @@ import org.apache.commons.logging.LogFactory;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.locks.ReentrantLock;
 
 public class DBSessionProvider implements Runnable {
 
@@ -55,7 +54,8 @@ public class DBSessionProvider implements Runnable {
   private AtomicInteger rollingAvgIndex = new AtomicInteger(-1);
   private boolean automaticRefresh = false;
   private Thread thread;
-  private Thread dtoCacheGenerator;
+  private DTOCacheGenerator cacheGenerator;
+  private Thread dtoCacheGeneratorThread;
 
   public DBSessionProvider(Properties conf, int reuseCount, int initialPoolSize)
       throws StorageException {
@@ -89,16 +89,21 @@ public class DBSessionProvider implements Runnable {
     }
 
     // TODO: Get number of cached sessions from configuration file
-    for (int i = 0; i < 50; i++) {
+    int NUM_OF_CACHE_ENABLED_SESSIONS = 70;
+
+    for (int i = 0; i < NUM_OF_CACHE_ENABLED_SESSIONS; i++) {
       preparingSessionPool.add(initSession(true));
     }
 
-    dtoCacheGenerator = new Thread(new DTOCacheGenerator(this));
-    dtoCacheGenerator.setDaemon(true);
-    dtoCacheGenerator.setName("DTO Cache Generator");
-    dtoCacheGenerator.start();
+    if (NUM_OF_CACHE_ENABLED_SESSIONS > 0) {
+      cacheGenerator = new DTOCacheGenerator(this, 3, 20);
+      dtoCacheGeneratorThread = new Thread(cacheGenerator);
+      dtoCacheGeneratorThread.setDaemon(true);
+      dtoCacheGeneratorThread.setName("DTO Cache Generator");
+      dtoCacheGeneratorThread.start();
+    }
 
-    PersistTime.getInstance().init();
+    //PersistTime.getInstance().init();
     thread = new Thread(this, "Session Pool Refresh Daemon");
     thread.setDaemon(true);
     automaticRefresh = true;
@@ -112,9 +117,9 @@ public class DBSessionProvider implements Runnable {
     if (cacheEnabled) {
       session.createDTOCache();
       // TODO: Is this a good place to register DTOs to cache?
-      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 400);
-      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 200);
-      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 400);
+      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 1500);
+      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 1000);
+      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 1500);
       /*session.registerType(JustLaunchedContainersClusterJ.JustLaunchedContainersDTO.class, 300);
       session.registerType(ContainerIdToCleanClusterJ.ContainerIdToCleanDTO.class, 300);
       session.registerType(FinishedApplicationsClusterJ.FinishedApplicationsDTO.class, 200);
@@ -147,11 +152,11 @@ public class DBSessionProvider implements Runnable {
 
   public void stop() throws StorageException {
     automaticRefresh = false;
-    if (dtoCacheGenerator != null) {
-      dtoCacheGenerator.interrupt();
+    if (dtoCacheGeneratorThread != null) {
+      dtoCacheGeneratorThread.interrupt();
     }
 
-    PersistTime.getInstance().close();
+    //PersistTime.getInstance().close();
 
     drainSessionPool(nonCachedSessionPool);
     drainSessionPool(readySessionPool);
@@ -173,10 +178,10 @@ public class DBSessionProvider implements Runnable {
     } catch (NoSuchElementException e) {
       try {
         DBSession session = preparingSessionPool.remove();
-        LOG.info("Using NOT READY session: " + session.toString());
+        LOG.info("maregka Using NOT READY session: " + session.toString());
         return session;
       } catch (NoSuchElementException e0) {
-        LOG.info("There are no ready, nor preparing sessions, creating a new one");
+        LOG.info("maregka There are no ready, nor preparing sessions, creating a new one");
         return initSession(true);
       }
     }
@@ -192,6 +197,7 @@ public class DBSessionProvider implements Runnable {
     }
   }
 
+  int returnCounter = 0;
   public void returnSession(DBSession returnedSession, boolean forceClose, boolean isCacheEnabled) {
     //session has been used, increment the use counter
     returnedSession
@@ -205,6 +211,15 @@ public class DBSessionProvider implements Runnable {
       // Put it in the preparing pool so that it gets its cache filled
       if (isCacheEnabled) {
         preparingSessionPool.add(returnedSession);
+
+        if (cacheGenerator != null) {
+          returnCounter++;
+          LOG.info("Returned cached-enabled session: " + returnCounter);
+          if (returnCounter == 30) {
+            returnCounter = 0;
+          }
+          cacheGenerator.releaseWaitSemaphore();
+        }
       } else {
         nonCachedSessionPool.add(returnedSession);
       }

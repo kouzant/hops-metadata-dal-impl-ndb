@@ -16,10 +16,12 @@ public class PersistTime {
     private FileWriter updatedContainerWriter;
     private FileWriter nodeHBWriter;
     private FileWriter nextHBWriter;
+    private FileWriter totalPersistWriter;
     private final ReentrantLock peLock = new ReentrantLock(true);
     private final ReentrantLock ucLock = new ReentrantLock(true);
     private final ReentrantLock nhLock = new ReentrantLock(true);
     private final ReentrantLock nxLock = new ReentrantLock(true);
+    private final ReentrantLock totalLock = new ReentrantLock(true);
 
     private PersistTime() {
 
@@ -35,10 +37,11 @@ public class PersistTime {
 
     public synchronized void init() {
         try {
-            pendingEventWriter = new FileWriter(home + "pendingEvents", true);
-            updatedContainerWriter = new FileWriter(home + "updatedContainers", true);
-            nodeHBWriter = new FileWriter(home + "nodeHBResponse", true);
+            //pendingEventWriter = new FileWriter(home + "pendingEvents", true);
+            //updatedContainerWriter = new FileWriter(home + "updatedContainers", true);
+            //nodeHBWriter = new FileWriter(home + "nodeHBResponse", true);
             nextHBWriter = new FileWriter(home + "nextHeartbeat", true);
+            totalPersistWriter = new FileWriter(home + "totalPersistTime", true);
         } catch (IOException ex) {
             ex.printStackTrace();
         }
@@ -59,6 +62,11 @@ public class PersistTime {
             if (nodeHBWriter != null) {
                 nodeHBWriter.flush();
                 nodeHBWriter.close();
+            }
+
+            if (totalPersistWriter != null) {
+                totalPersistWriter.flush();
+                totalPersistWriter.close();
             }
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -106,6 +114,17 @@ public class PersistTime {
             ex.printStackTrace();
         } finally {
             nxLock.unlock();
+        }
+    }
+
+    public void writeTotalPersistTime(long time) {
+        try {
+            totalLock.lock();
+            totalPersistWriter.write(time + ",");
+        } catch (IOException ex) {
+            ex.printStackTrace();
+        } finally {
+            totalLock.unlock();
         }
     }
 }

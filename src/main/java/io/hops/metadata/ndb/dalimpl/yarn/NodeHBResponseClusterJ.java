@@ -149,11 +149,11 @@ public class NodeHBResponseClusterJ implements TablesDef.NodeHBResponseTableDef,
 
   private NodeHBResponseDTO createPersistable(NodeHBResponse nodehbresponse,
       HopsSession session) throws StorageException {
-    long start = System.currentTimeMillis();
+    //long start = System.currentTimeMillis();
     NodeHBResponseDTO nodeHBResponseDT0 =
-        session.newInstance(NodeHBResponseDTO.class);
-    long delta = System.currentTimeMillis() - start;
-    PersistTime.getInstance().writeNodeHBTime(delta);
+        session.newCachedInstance(NodeHBResponseDTO.class);
+    //long delta = System.currentTimeMillis() - start;
+    //PersistTime.getInstance().writeNodeHBTime(delta);
     nodeHBResponseDT0.setrmnodeid(nodehbresponse.getRMNodeId());
     try {
       nodeHBResponseDT0.setresponse(CompressionUtils.compress(nodehbresponse.

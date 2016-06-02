@@ -21,6 +21,7 @@ public class DTOCacheGenerator implements Runnable {
     private final ExecutorService exec;
     private final List<Future<?>> workers;
     private final Semaphore semaphore;
+    private final Semaphore waitForSessions;
 
     public DTOCacheGenerator(DBSessionProvider sessionProvider) {
         this(sessionProvider, 2, 200);
@@ -31,7 +32,8 @@ public class DTOCacheGenerator implements Runnable {
         this.sessionProvider = sessionProvider;
         this.exec = Executors.newCachedThreadPool();
         this.sessionsThreshold = sessionsThreshold;
-        semaphore = new Semaphore(maxNumberOfThreads);
+        semaphore = new Semaphore(maxNumberOfThreads, true);
+        waitForSessions = new Semaphore(0, true);
         this.workers = new ArrayList<Future<?>>(maxNumberOfThreads);
         LOG.info("Just spawned DTO generator daemon");
     }
@@ -46,18 +48,10 @@ public class DTOCacheGenerator implements Runnable {
                 int preparingSizeNow = toBePreparedSessions.size();
                 //LOG.info("toBePreparedSessions is: " + preparingSizeNow);
 
-                if (preparingSizeNow == 0) {
-                    TimeUnit.MILLISECONDS.sleep(20);
-                    //LOG.info("Preparing sessions is empty, skip...");
-                    continue;
-                }
-
-                // TODO: Split the toBePreparedSessions, fork and join
+                // Split the toBePreparedSessions, fork and join
                 if (preparingSizeNow <= sessionsThreshold) {
-                    //LOG.info("Creating one generator thread");
-                    semaphore.acquire();
-                    workers.add(exec.submit(
-                            new Generator(toBePreparedSessions, semaphore)));
+                    //LOG.info("Doing the dirty job all by myself");
+                    populatePreparingSessions(toBePreparedSessions);
                 } else {
                     // Split them
                     int numOfThreads = (int) Math.floor(preparingSizeNow / sessionsThreshold);
@@ -83,18 +77,18 @@ public class DTOCacheGenerator implements Runnable {
                         workers.add(exec.submit(
                                 new Generator(subList, semaphore)));
                     }
+
+                    //LOG.info("Waiting for workers to finish! " + workers.size());
+                    for (Future worker : workers) {
+                        worker.get();
+                    }
+
+                    workers.clear();
+                    //LOG.info("All workers are done!");
                 }
 
-                //LOG.info("Waiting for workers to finish! " + workers.size());
-                for (Future worker : workers) {
-                    worker.get();
-                }
-
-                workers.clear();
-                //LOG.info("All workers are done!");
-
-                // Take some time to rest
-                TimeUnit.SECONDS.sleep(1);
+                //LOG.info("Waiting to acquire 30 permits");
+                waitForSessions.acquire(50);
             }
 
         } catch (InterruptedException ex) {
@@ -102,6 +96,41 @@ public class DTOCacheGenerator implements Runnable {
         } catch (ExecutionException ex) {
             LOG.error(ex, ex);
         }
+    }
+
+    public void releaseWaitSemaphore() {
+        waitForSessions.release();
+    }
+
+    private void populatePreparingSessions(Collection<DBSession> sessions) {
+        long start = System.currentTimeMillis();
+        int dtos = 0;
+        for (DBSession session : sessions) {
+            // Preparing DBSessions are removed from the preparing pool when they are fetched
+            try {
+                List<Class> notFullTypes = session.getSession().getNotFullTypes();
+
+                for (Class type : notFullTypes) {
+                    boolean notFullYet = true;
+
+                    try {
+                        while (notFullYet) {
+                            notFullYet = session.getSession().putToCache(type,
+                                    session.getSession().newInstance(type));
+                            dtos++;
+                        }
+                    } catch (StorageException ex) {
+                        LOG.error(ex, ex);
+                    }
+                }
+
+                sessionProvider.getReadySessionPool().add(session);
+            } catch (StorageException ex) {
+                LOG.error(ex, ex);
+            }
+        }
+
+        //LOG.info("Time to populate " + sessions.size() + " sessions and " + dtos + " DTOs: " + (System.currentTimeMillis() - start));
     }
 
     private class Generator implements Runnable {
@@ -115,30 +144,8 @@ public class DTOCacheGenerator implements Runnable {
 
         @Override
         public void run() {
-            long start = System.currentTimeMillis();
-            for (DBSession session : sessions) {
-                // I remove the DBSessions from the preparing pool when I get them
-
-                List<Class> notFullTypes = session.getSession().getNotFullTypes();
-
-                for (Class type : notFullTypes) {
-                    boolean notFull = true;
-                    try {
-                        // While cache is not full, populate it
-                        while (notFull) {
-                            notFull = session.getSession().putToCache(type,
-                                    session.getSession().cacheNewInstance(type));
-                        }
-                    } catch (StorageException ex) {
-                        LOG.error(ex, ex);
-                    }
-                }
-
-                // Put them into ready set
-                sessionProvider.getReadySessionPool().add(session);
-            }
+            populatePreparingSessions(sessions);
             semaphore.release();
-            //LOG.info("Time to populate " + sessions.size() + ": " + (System.currentTimeMillis() - start));
             //LOG.info("Released semaphore");
         }
     }

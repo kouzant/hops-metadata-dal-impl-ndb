@@ -21,21 +21,26 @@ package io.hops.metadata.ndb.wrapper;
 import com.mysql.clusterj.*;
 import com.mysql.clusterj.query.QueryBuilder;
 import io.hops.exception.StorageException;
+import io.hops.metadata.ndb.cache.DTOCache;
+import io.hops.metadata.ndb.cache.DTOCacheImpl;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.Collection;
 import java.util.List;
 
 public class HopsSession {
+  private final Log LOG = LogFactory.getLog(HopsSession.class);
+
   private final Session session;
-  private boolean cachedEnabled;
+  private DTOCache dtoCache = null;
 
   public HopsSession(Session session) {
     this.session = session;
-    this.cachedEnabled = false;
   }
 
   public boolean isCachedEnabled() {
-    return cachedEnabled;
+    return dtoCache != null;
   }
 
   public HopsQueryBuilder getQueryBuilder() throws StorageException {
@@ -66,49 +71,45 @@ public class HopsSession {
     }
   }
 
-  public void registerType(Class type, int cacheSize) {
-    DTOCache dtoCache = session.getDTOCache();
-    if (dtoCache != null) {
-      dtoCache.registerType(type, cacheSize);
-    }
-  }
-
-  public void deregisterType(Class type) {
-    DTOCache dtoCache = session.getDTOCache();
-    if (dtoCache != null) {
-      dtoCache.deregisterType(type);
-    }
-  }
-
   public void createDTOCache() {
-    session.createDTOCache();
-    cachedEnabled = true;
+    dtoCache = new DTOCacheImpl();
   }
 
-  public <T> boolean putToCache(Class<T> type, T element) {
-    DTOCache dtoCache = session.getDTOCache();
-    if (dtoCache != null) {
-      return dtoCache.put(type, element);
+  private void assertCacheEnabled() throws StorageException {
+    if (dtoCache == null) {
+      throw new StorageException("DTO cache is disabled for this session");
     }
-
-    return false;
   }
 
-  public List<Class> getNotFullTypes() {
-    DTOCache dtoCache = session.getDTOCache();
-    if (dtoCache != null) {
-      return dtoCache.getNotFullTypes();
-    }
-
-    return null;
+  public void registerType(Class type, int cacheSize) throws StorageException {
+    assertCacheEnabled();
+    dtoCache.registerType(type, cacheSize);
   }
 
-  public <T> T cacheNewInstance(Class<T> type) throws StorageException {
-    try {
-      return session.cacheNewInstance(type);
-    } catch (ClusterJException e) {
-      throw HopsExceptionHelper.wrap(e);
+  public void deregisterType(Class type) throws StorageException {
+    assertCacheEnabled();
+    dtoCache.deregisterType(type);
+  }
+
+  public <T> boolean putToCache(Class<T> type, T element) throws StorageException {
+    assertCacheEnabled();
+
+    return dtoCache.put(type, element);
+  }
+
+  public List<Class> getNotFullTypes() throws StorageException {
+    return dtoCache.getNotFullTypes();
+  }
+
+  public <T> T newCachedInstance(Class<T> aClass) throws StorageException {
+    if (dtoCache != null && dtoCache.containsType(aClass)) {
+      T instance = dtoCache.get(aClass);
+      if (instance != null) {
+        return instance;
+      }
     }
+
+    return newInstance(aClass);
   }
 
   public <T> T newInstance(Class<T> aClass) throws StorageException {

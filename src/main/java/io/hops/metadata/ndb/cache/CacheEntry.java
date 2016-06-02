@@ -7,9 +7,11 @@ import java.util.concurrent.ArrayBlockingQueue;
  */
 public class CacheEntry<T> {
     private final ArrayBlockingQueue<T> cache;
+    private final int cacheSize;
 
     public CacheEntry(int cacheSize) {
         cache = new ArrayBlockingQueue<T>(cacheSize, true);
+        this.cacheSize = cacheSize;
     }
 
     public boolean add(T element) {
@@ -21,7 +23,7 @@ public class CacheEntry<T> {
     }
 
     public boolean isFull() {
-        return cache.remainingCapacity() == 0;
+        return cache.size() == cacheSize;
     }
 
     public boolean isEmpty() {

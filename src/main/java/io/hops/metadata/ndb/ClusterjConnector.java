@@ -185,9 +185,9 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
   public HopsSession obtainCachedSession() throws StorageException {
     DBSession dbSession = sessions.get();
 
-    if (dbSession != null && !dbSession.getSession().isCachedEnabled()) {
+    /*if (dbSession != null && !dbSession.getSession().isCachedEnabled()) {
       LOG.error("Ordered cached session but got non-cached");
-    }
+    }*/
 
     if (dbSession == null) {
       dbSession = dbSessionProvider.getCachedSession();
