@@ -23,6 +23,7 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
+import io.hops.metadata.ndb.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
 import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
@@ -96,7 +97,9 @@ public class NextHeartbeatClusterJ
   @Override
   public void updateAll(List<NextHeartbeat> toUpdate)
           throws StorageException {
+    long start = System.currentTimeMillis();
     HopsSession session = connector.obtainSession();
+    PersistTime.getInstance().writeNextHeartbeatTime(System.currentTimeMillis() - start);
     List<NextHeartbeatDTO> toPersist = new ArrayList<NextHeartbeatDTO>();
     List<NextHeartbeatDTO> toRemove = new ArrayList<NextHeartbeatDTO>();
 
@@ -116,6 +119,7 @@ public class NextHeartbeatClusterJ
     session.flush();
     session.release(toPersist);
     session.release(toRemove);
+
   }
 
   public void removeById(String rmNodeId) throws StorageException {

@@ -78,6 +78,8 @@ public class DBSessionProvider implements Runnable {
       throw HopsExceptionHelper.wrap(ex);
     }
 
+    PersistTime.getInstance().init();
+
     for (int i = 0; i < initialPoolSize; i++) {
       sessionPool.add(initSession());
     }
@@ -111,6 +113,7 @@ public class DBSessionProvider implements Runnable {
 
   public void stop() throws StorageException {
     automaticRefresh = false;
+    PersistTime.getInstance().close();
     while (!sessionPool.isEmpty()) {
       DBSession dbsession = sessionPool.remove();
       closeSession(dbsession);
