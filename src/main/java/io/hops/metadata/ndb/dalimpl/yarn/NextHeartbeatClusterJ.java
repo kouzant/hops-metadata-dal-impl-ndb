@@ -95,17 +95,13 @@ public class NextHeartbeatClusterJ
   @Override
   public void updateAll(List<NextHeartbeat> toUpdate)
           throws StorageException {
-    long start = System.currentTimeMillis();
     HopsSession session = connector.obtainSession();
     List<NextHeartbeatDTO> toPersist = new ArrayList<NextHeartbeatDTO>();
     List<NextHeartbeatDTO> toRemove = new ArrayList<NextHeartbeatDTO>();
     
     for (NextHeartbeat hb : toUpdate) {
-      long startCreate = System.currentTimeMillis();
       NextHeartbeatDTO hbDTO = createPersistable(hb,
               session);
-
-      PersistTime.getInstance().writeNextHeartbeatTime(System.currentTimeMillis() - startCreate);
 
       if (hb.isNextheartbeat()) {
         toPersist.add(hbDTO);
@@ -121,8 +117,6 @@ public class NextHeartbeatClusterJ
     session.release(toPersist);
     session.release(toRemove);
 
-    long diff = System.currentTimeMillis() - start;
-    PersistTime.getInstance().writeTotalPersistTime(diff);
     //return diff;
   }
 

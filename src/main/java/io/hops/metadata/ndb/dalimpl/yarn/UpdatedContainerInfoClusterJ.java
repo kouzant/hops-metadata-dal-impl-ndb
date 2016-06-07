@@ -175,6 +175,7 @@ public class UpdatedContainerInfoClusterJ
     session.release(toRemove);
   }
 
+  // Cache-enabled session is available
   private UpdatedContainerInfoDTO createPersistable(UpdatedContainerInfo hop,
           HopsSession session) throws StorageException {
     //long start = System.currentTimeMillis();

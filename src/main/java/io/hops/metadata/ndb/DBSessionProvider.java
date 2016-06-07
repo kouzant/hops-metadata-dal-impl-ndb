@@ -24,13 +24,19 @@ import com.mysql.clusterj.Constants;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.dalimpl.yarn.*;
 import io.hops.metadata.ndb.cache.PersistTime;
+import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.AllocateResponseClusterJ;
+import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.AllocatedContainersClusterJ;
+import io.hops.metadata.ndb.dalimpl.yarn.rmstatestore.CompletedContainersStatusClusterJ;
 import io.hops.metadata.ndb.wrapper.HopsExceptionHelper;
 import io.hops.metadata.ndb.wrapper.HopsSession;
 import io.hops.metadata.ndb.wrapper.HopsSessionFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -57,6 +63,31 @@ public class DBSessionProvider implements Runnable {
   private DTOCacheGenerator cacheGenerator;
   private Thread dtoCacheGeneratorThread;
 
+  // FOR TESTING
+  private FileWriter cacheMissWriter;
+  private boolean writeHeader = true;
+
+  private synchronized void dumpCacheMiss(Map<Class, Integer> cachemiss) {
+    try {
+      String header = "";
+      String values = "";
+      for (Map.Entry<Class, Integer> entry : cachemiss.entrySet()) {
+        if (writeHeader) {
+          header = header + "," + entry.getKey().getName();
+        }
+        values = values + "," + entry.getValue();
+      }
+
+      if (writeHeader) {
+        cacheMissWriter.write(header + "\n");
+        writeHeader = false;
+      }
+      cacheMissWriter.write(values + "\n");
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }
+  }
+
   public DBSessionProvider(Properties conf, int reuseCount, int initialPoolSize)
       throws StorageException {
     this.conf = conf;
@@ -68,6 +99,11 @@ public class DBSessionProvider implements Runnable {
     rand = new Random(System.currentTimeMillis());
     rollingAvg = new long[initialPoolSize];
     start(initialPoolSize);
+    /*try {
+      cacheMissWriter = new FileWriter("/home/antonis/cache_miss", true);
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }*/
   }
 
   private void start(int initialPoolSize) throws StorageException {
@@ -89,14 +125,19 @@ public class DBSessionProvider implements Runnable {
     }
 
     // TODO: Get number of cached sessions from configuration file
-    int NUM_OF_CACHE_ENABLED_SESSIONS = 70;
+    // 100
+    int NUM_OF_CACHE_ENABLED_SESSIONS = 100;
 
-    for (int i = 0; i < NUM_OF_CACHE_ENABLED_SESSIONS; i++) {
+    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
+      readySessionPool.add(initSession(true));
+    }
+
+    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
       preparingSessionPool.add(initSession(true));
     }
 
     if (NUM_OF_CACHE_ENABLED_SESSIONS > 0) {
-      cacheGenerator = new DTOCacheGenerator(this, 3, 20);
+      cacheGenerator = new DTOCacheGenerator(this, 3, 10);
       dtoCacheGeneratorThread = new Thread(cacheGenerator);
       dtoCacheGeneratorThread.setDaemon(true);
       dtoCacheGeneratorThread.setName("DTO Cache Generator");
@@ -104,6 +145,7 @@ public class DBSessionProvider implements Runnable {
     }
 
     //PersistTime.getInstance().init();
+
     thread = new Thread(this, "Session Pool Refresh Daemon");
     thread.setDaemon(true);
     automaticRefresh = true;
@@ -117,20 +159,9 @@ public class DBSessionProvider implements Runnable {
     if (cacheEnabled) {
       session.createDTOCache();
       // TODO: Is this a good place to register DTOs to cache?
-      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 1500);
-      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 1000);
-      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 1500);
-      /*session.registerType(JustLaunchedContainersClusterJ.JustLaunchedContainersDTO.class, 300);
-      session.registerType(ContainerIdToCleanClusterJ.ContainerIdToCleanDTO.class, 300);
-      session.registerType(FinishedApplicationsClusterJ.FinishedApplicationsDTO.class, 200);
-      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 500);
-      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 400);*/
-    /*session.registerType(NextHeartbeatClusterJ.NextHeartbeatDTO.class, 500);
-    session.registerType(RPCClusterJ.RPCDTO.class, 100);
-    session.registerType(HeartBeatRPCClusterJ.HeartBeatRPCDTO.class, 100);
-    session.registerType(AllocateRPCClusterJ.AllocateRPCDTO.class, 100);
-    session.registerType(GarbageCollectorRPCClusterJ.GarbageCollectorDTO.class, 100);*/
-
+      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 6000);
+      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 1700);
+      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 500);
     }
     Long sessionCreationTime = (System.currentTimeMillis() - startTime);
     rollingAvg[rollingAvgIndex.incrementAndGet() % rollingAvg.length] =
@@ -161,6 +192,15 @@ public class DBSessionProvider implements Runnable {
     drainSessionPool(nonCachedSessionPool);
     drainSessionPool(readySessionPool);
     drainSessionPool(preparingSessionPool);
+
+    /*try {
+      if (cacheMissWriter != null) {
+        cacheMissWriter.flush();
+        cacheMissWriter.close();
+      }
+    } catch (IOException ex) {
+      ex.printStackTrace();
+    }*/
   }
 
   private void drainSessionPool(ConcurrentLinkedQueue<DBSession> pool) throws StorageException {
@@ -197,7 +237,6 @@ public class DBSessionProvider implements Runnable {
     }
   }
 
-  int returnCounter = 0;
   public void returnSession(DBSession returnedSession, boolean forceClose, boolean isCacheEnabled) {
     //session has been used, increment the use counter
     returnedSession
@@ -210,14 +249,11 @@ public class DBSessionProvider implements Runnable {
     } else { // increment the count and return it to the pool
       // Put it in the preparing pool so that it gets its cache filled
       if (isCacheEnabled) {
+        //dumpCacheMiss(returnedSession.getSession().cacheMiss);
+
         preparingSessionPool.add(returnedSession);
 
         if (cacheGenerator != null) {
-          returnCounter++;
-          LOG.info("Returned cached-enabled session: " + returnCounter);
-          if (returnCounter == 30) {
-            returnCounter = 0;
-          }
           cacheGenerator.releaseWaitSemaphore();
         }
       } else {
@@ -264,8 +300,8 @@ public class DBSessionProvider implements Runnable {
     return returnSet;
   }
 
-  public ConcurrentLinkedQueue<DBSession> getReadySessionPool() {
-    return readySessionPool;
+  public void addToReadySessionPool(DBSession session) {
+    readySessionPool.add(session);
   }
 
   @Override

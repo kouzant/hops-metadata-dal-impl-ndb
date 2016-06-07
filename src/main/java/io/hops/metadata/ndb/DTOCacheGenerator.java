@@ -16,6 +16,7 @@ public class DTOCacheGenerator implements Runnable {
 
     private final Log LOG = LogFactory.getLog(DTOCacheGenerator.class);
 
+    private final int SESSIONS_TO_PREPARE = 20;
     private final int sessionsThreshold;
     private final DBSessionProvider sessionProvider;
     private final ExecutorService exec;
@@ -43,7 +44,7 @@ public class DTOCacheGenerator implements Runnable {
         try {
             while (!Thread.currentThread().isInterrupted()) {
                 List<DBSession> toBePreparedSessions =
-                        sessionProvider.getPreparingSessions(600);
+                        sessionProvider.getPreparingSessions(SESSIONS_TO_PREPARE);
 
                 int preparingSizeNow = toBePreparedSessions.size();
                 //LOG.info("toBePreparedSessions is: " + preparingSizeNow);
@@ -88,7 +89,7 @@ public class DTOCacheGenerator implements Runnable {
                 }
 
                 //LOG.info("Waiting to acquire 30 permits");
-                waitForSessions.acquire(50);
+                waitForSessions.acquire(SESSIONS_TO_PREPARE);
             }
 
         } catch (InterruptedException ex) {
@@ -124,7 +125,7 @@ public class DTOCacheGenerator implements Runnable {
                     }
                 }
 
-                sessionProvider.getReadySessionPool().add(session);
+                sessionProvider.addToReadySessionPool(session);
             } catch (StorageException ex) {
                 LOG.error(ex, ex);
             }

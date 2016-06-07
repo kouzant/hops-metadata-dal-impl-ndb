@@ -198,6 +198,7 @@ public class PendingEventClusterJ
    * @param session
    * @return
    */
+  // Cache-enabled session is available
   private PendingEventDTO createPersistable(PendingEvent hopPersistedEvent,
       HopsSession session) throws StorageException {
     //long start = System.currentTimeMillis();

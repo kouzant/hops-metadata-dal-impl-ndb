@@ -147,6 +147,7 @@ public class NodeHBResponseClusterJ implements TablesDef.NodeHBResponseTableDef,
     }
   }
 
+  // Cache-enabled session is available
   private NodeHBResponseDTO createPersistable(NodeHBResponse nodehbresponse,
       HopsSession session) throws StorageException {
     //long start = System.currentTimeMillis();

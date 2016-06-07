@@ -39,7 +39,7 @@ public class PersistTime {
         try {
             //pendingEventWriter = new FileWriter(home + "pendingEvents", true);
             //updatedContainerWriter = new FileWriter(home + "updatedContainers", true);
-            //nodeHBWriter = new FileWriter(home + "nodeHBResponse", true);
+            nodeHBWriter = new FileWriter(home + "obtainSession", true);
             nextHBWriter = new FileWriter(home + "nextHeartbeat", true);
             totalPersistWriter = new FileWriter(home + "totalPersistTime", true);
         } catch (IOException ex) {
