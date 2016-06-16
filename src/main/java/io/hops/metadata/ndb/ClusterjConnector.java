@@ -166,6 +166,13 @@ public class ClusterjConnector implements StorageConnector<DBSession> {
     isInitialized = true;
   }
 
+  @Override
+  public void initDTOCache() throws StorageException {
+    if (dbSessionProvider != null) {
+      dbSessionProvider.initDTOCache();
+    }
+  }
+
   /*
    * Return a dbSession from a random dbSession factory in our pool.
    *

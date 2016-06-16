@@ -16,13 +16,14 @@ public class DTOCacheGenerator implements Runnable {
 
     private final Log LOG = LogFactory.getLog(DTOCacheGenerator.class);
 
-    private final int SESSIONS_TO_PREPARE = 20;
+    private final int SESSIONS_TO_PREPARE = 30;
     private final int sessionsThreshold;
     private final DBSessionProvider sessionProvider;
     private final ExecutorService exec;
     private final List<Future<?>> workers;
     private final Semaphore semaphore;
     private final Semaphore waitForSessions;
+    private boolean warmup = true;
 
     public DTOCacheGenerator(DBSessionProvider sessionProvider) {
         this(sessionProvider, 2, 200);
@@ -43,8 +44,14 @@ public class DTOCacheGenerator implements Runnable {
     public void run() {
         try {
             while (!Thread.currentThread().isInterrupted()) {
-                List<DBSession> toBePreparedSessions =
-                        sessionProvider.getPreparingSessions(SESSIONS_TO_PREPARE);
+                List<DBSession> toBePreparedSessions;
+
+                if (warmup) {
+                    toBePreparedSessions = sessionProvider.getAllPreparingSessions();
+                    warmup = false;
+                } else {
+                    toBePreparedSessions = sessionProvider.getPreparingSessions(SESSIONS_TO_PREPARE);
+                }
 
                 int preparingSizeNow = toBePreparedSessions.size();
                 //LOG.info("toBePreparedSessions is: " + preparingSizeNow);

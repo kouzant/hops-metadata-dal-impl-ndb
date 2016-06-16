@@ -65,6 +65,11 @@ public class MysqlServerConnector implements StorageConnector<Connection> {
   }
 
   @Override
+  public void initDTOCache() throws StorageException {
+    throw new UnsupportedOperationException("DTO cache not supported yet.");
+  }
+
+  @Override
   public Connection obtainCachedSession() throws StorageException {
     return obtainSession();
   }

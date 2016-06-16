@@ -106,6 +106,28 @@ public class DBSessionProvider implements Runnable {
     }*/
   }
 
+  public void initDTOCache() throws StorageException {
+    // TODO: Get number of cached sessions from configuration file
+    // 100
+    int NUM_OF_CACHE_ENABLED_SESSIONS = 100;
+
+    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
+      readySessionPool.add(initSession(true));
+    }
+
+    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
+      preparingSessionPool.add(initSession(true));
+    }
+
+    if (NUM_OF_CACHE_ENABLED_SESSIONS > 0) {
+      cacheGenerator = new DTOCacheGenerator(this, 3, 20);
+      dtoCacheGeneratorThread = new Thread(cacheGenerator);
+      dtoCacheGeneratorThread.setDaemon(true);
+      dtoCacheGeneratorThread.setName("DTO Cache Generator");
+      dtoCacheGeneratorThread.start();
+    }
+  }
+
   private void start(int initialPoolSize) throws StorageException {
     System.out.println("Database connect string: " +
         conf.get(Constants.PROPERTY_CLUSTER_CONNECTSTRING));
@@ -124,26 +146,6 @@ public class DBSessionProvider implements Runnable {
       nonCachedSessionPool.add(initSession(false));
     }
 
-    // TODO: Get number of cached sessions from configuration file
-    // 100
-    int NUM_OF_CACHE_ENABLED_SESSIONS = 100;
-
-    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
-      readySessionPool.add(initSession(true));
-    }
-
-    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
-      preparingSessionPool.add(initSession(true));
-    }
-
-    if (NUM_OF_CACHE_ENABLED_SESSIONS > 0) {
-      cacheGenerator = new DTOCacheGenerator(this, 3, 10);
-      dtoCacheGeneratorThread = new Thread(cacheGenerator);
-      dtoCacheGeneratorThread.setDaemon(true);
-      dtoCacheGeneratorThread.setName("DTO Cache Generator");
-      dtoCacheGeneratorThread.start();
-    }
-
     //PersistTime.getInstance().init();
 
     thread = new Thread(this, "Session Pool Refresh Daemon");
@@ -159,9 +161,9 @@ public class DBSessionProvider implements Runnable {
     if (cacheEnabled) {
       session.createDTOCache();
       // TODO: Is this a good place to register DTOs to cache?
-      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 6000);
-      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 1700);
-      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 500);
+      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 8000);
+      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 3000);
+      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 1000);
     }
     Long sessionCreationTime = (System.currentTimeMillis() - startTime);
     rollingAvg[rollingAvgIndex.incrementAndGet() % rollingAvg.length] =
