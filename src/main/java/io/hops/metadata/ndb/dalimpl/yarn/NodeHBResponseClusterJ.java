@@ -23,7 +23,6 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
-import io.hops.metadata.ndb.cache.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
 import io.hops.metadata.ndb.wrapper.HopsQueryDomainType;
@@ -102,7 +101,7 @@ public class NodeHBResponseClusterJ implements TablesDef.NodeHBResponseTableDef,
 
   @Override
   public void addAll(Collection<NodeHBResponse> toAdd) throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<NodeHBResponseDTO> toPersist = new ArrayList<NodeHBResponseDTO>();
     for(NodeHBResponse response: toAdd){
       NodeHBResponseDTO dto = createPersistable(response, session);
@@ -150,11 +149,8 @@ public class NodeHBResponseClusterJ implements TablesDef.NodeHBResponseTableDef,
   // Cache-enabled session is available
   private NodeHBResponseDTO createPersistable(NodeHBResponse nodehbresponse,
       HopsSession session) throws StorageException {
-    //long start = System.currentTimeMillis();
     NodeHBResponseDTO nodeHBResponseDT0 =
         session.newCachedInstance(NodeHBResponseDTO.class);
-    //long delta = System.currentTimeMillis() - start;
-    //PersistTime.getInstance().writeNodeHBTime(delta);
     nodeHBResponseDT0.setrmnodeid(nodehbresponse.getRMNodeId());
     try {
       nodeHBResponseDT0.setresponse(CompressionUtils.compress(nodehbresponse.

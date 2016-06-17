@@ -47,7 +47,7 @@ public abstract class NDBBaseTest {
     public void tearDown() throws IOException {
         LightWeightRequestHandler clean =
                 new StorageFormatter(YARNOperationType.TEST);
-        //clean.handle();
+        clean.handle();
     }
 
     protected Properties getMetadataClusterConfiguration()

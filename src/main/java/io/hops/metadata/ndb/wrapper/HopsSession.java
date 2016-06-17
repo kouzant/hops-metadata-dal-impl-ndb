@@ -23,25 +23,17 @@ import com.mysql.clusterj.query.QueryBuilder;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.cache.DTOCache;
 import io.hops.metadata.ndb.cache.DTOCacheImpl;
-import io.hops.metadata.ndb.dalimpl.yarn.NodeHBResponseClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.PendingEventClusterJ;
-import io.hops.metadata.ndb.dalimpl.yarn.UpdatedContainerInfoClusterJ;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class HopsSession {
   private final Log LOG = LogFactory.getLog(HopsSession.class);
 
   private final Session session;
   private DTOCache dtoCache = null;
-  // FOR TESTING
-  public final Map<Class, Integer> cacheMiss =
-          new HashMap<Class, Integer>();
 
   public HopsSession(Session session) {
     this.session = session;
@@ -81,10 +73,6 @@ public class HopsSession {
 
   public void createDTOCache() {
     dtoCache = new DTOCacheImpl();
-    // FOR TESTING
-    cacheMiss.put(PendingEventClusterJ.PendingEventDTO.class, 0);
-    cacheMiss.put(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 0);
-    cacheMiss.put(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 0);
   }
 
   private void assertCacheEnabled() throws StorageException {
@@ -93,9 +81,9 @@ public class HopsSession {
     }
   }
 
-  public void registerType(Class type, int cacheSize) throws StorageException {
+  public void registerType(Class type, int cacheSize, int maxCacheSize, int step) throws StorageException {
     assertCacheEnabled();
-    dtoCache.registerType(type, cacheSize);
+    dtoCache.registerType(type, cacheSize, maxCacheSize, step);
   }
 
   public void deregisterType(Class type) throws StorageException {
@@ -113,25 +101,14 @@ public class HopsSession {
     return dtoCache.getNotFullTypes();
   }
 
-  // FOR TESTING
-  private void incrCacheMissCounter(Class type) {
-    Integer counter = cacheMiss.get(type);
-    if (counter != null) {
-      cacheMiss.put(type, ++counter);
-    } else {
-      cacheMiss.put(type, 1);
-    }
-  }
-
   public <T> T newCachedInstance(Class<T> aClass) throws StorageException {
     if (dtoCache != null && dtoCache.containsType(aClass)) {
       T instance = dtoCache.get(aClass);
       if (instance != null) {
         return instance;
-      } /*else {
-        incrCacheMissCounter(aClass);
-        //LOG.info("maregka Cache-miss for type: " + aClass.getName() + " for: " + cacheMiss.get(aClass) + " times");
-      }*/
+      } else {
+        dtoCache.increaseCacheCapacity(aClass);
+      }
     }
 
     return newInstance(aClass);

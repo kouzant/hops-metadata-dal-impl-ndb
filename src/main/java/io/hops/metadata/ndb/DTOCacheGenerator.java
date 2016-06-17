@@ -16,7 +16,7 @@ public class DTOCacheGenerator implements Runnable {
 
     private final Log LOG = LogFactory.getLog(DTOCacheGenerator.class);
 
-    private final int SESSIONS_TO_PREPARE = 30;
+    private final int SESSIONS_TO_PREPARE = 20;
     private final int sessionsThreshold;
     private final DBSessionProvider sessionProvider;
     private final ExecutorService exec;
@@ -54,16 +54,13 @@ public class DTOCacheGenerator implements Runnable {
                 }
 
                 int preparingSizeNow = toBePreparedSessions.size();
-                //LOG.info("toBePreparedSessions is: " + preparingSizeNow);
 
                 // Split the toBePreparedSessions, fork and join
                 if (preparingSizeNow <= sessionsThreshold) {
-                    //LOG.info("Doing the dirty job all by myself");
                     populatePreparingSessions(toBePreparedSessions);
                 } else {
                     // Split them
                     int numOfThreads = (int) Math.floor(preparingSizeNow / sessionsThreshold);
-                    //LOG.info("Creating at least " + numOfThreads + " threads");
                     // TODO: A little bit nasty, but it's easy to sublist
                     List<DBSession> sessionsList = new ArrayList<DBSession>(toBePreparedSessions);
 
@@ -80,22 +77,18 @@ public class DTOCacheGenerator implements Runnable {
                     if (head < toBePreparedSessions.size()) {
                         List<DBSession> subList = sessionsList.subList(head, preparingSizeNow);
                         semaphore.acquire();
-                        //LOG.info("Last thread");
                         //LOG.info("Submitted sessions [" + head + "," + preparingSizeNow + "]");
                         workers.add(exec.submit(
                                 new Generator(subList, semaphore)));
                     }
 
-                    //LOG.info("Waiting for workers to finish! " + workers.size());
                     for (Future worker : workers) {
                         worker.get();
                     }
 
                     workers.clear();
-                    //LOG.info("All workers are done!");
                 }
 
-                //LOG.info("Waiting to acquire 30 permits");
                 waitForSessions.acquire(SESSIONS_TO_PREPARE);
             }
 
@@ -111,8 +104,6 @@ public class DTOCacheGenerator implements Runnable {
     }
 
     private void populatePreparingSessions(Collection<DBSession> sessions) {
-        long start = System.currentTimeMillis();
-        int dtos = 0;
         for (DBSession session : sessions) {
             // Preparing DBSessions are removed from the preparing pool when they are fetched
             try {
@@ -125,7 +116,6 @@ public class DTOCacheGenerator implements Runnable {
                         while (notFullYet) {
                             notFullYet = session.getSession().putToCache(type,
                                     session.getSession().newInstance(type));
-                            dtos++;
                         }
                     } catch (StorageException ex) {
                         LOG.error(ex, ex);
@@ -137,8 +127,6 @@ public class DTOCacheGenerator implements Runnable {
                 LOG.error(ex, ex);
             }
         }
-
-        //LOG.info("Time to populate " + sessions.size() + " sessions and " + dtos + " DTOs: " + (System.currentTimeMillis() - start));
     }
 
     private class Generator implements Runnable {
@@ -154,7 +142,6 @@ public class DTOCacheGenerator implements Runnable {
         public void run() {
             populatePreparingSessions(sessions);
             semaphore.release();
-            //LOG.info("Released semaphore");
         }
     }
 }

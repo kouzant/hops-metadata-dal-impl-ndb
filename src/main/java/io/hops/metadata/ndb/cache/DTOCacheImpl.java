@@ -20,9 +20,9 @@ public class DTOCacheImpl implements DTOCache {
         cacheMap = new ConcurrentHashMap<Class, CacheEntry>();
     }
 
-    public void registerType(Class type, int cacheSize) {
+    public void registerType(Class type, int cacheSize, int maxCacheSize, int step) {
         if (!cacheMap.containsKey(type)) {
-            cacheMap.put(type, new CacheEntry(cacheSize));
+            cacheMap.put(type, new CacheEntry(cacheSize, maxCacheSize, step));
         } else {
             LOG.warn("Cache already contains type: " + type.getName());
         }
@@ -52,6 +52,14 @@ public class DTOCacheImpl implements DTOCache {
         }
 
         return cacheEntry.get();
+    }
+
+    public <T> void increaseCacheCapacity(Class<T> type) {
+        CacheEntry<T> cacheEntry = cacheMap.get(type);
+
+        if (cacheEntry != null) {
+            cacheEntry.increaseCacheCapacity();
+        }
     }
 
     public <T> boolean containsType(Class<T> type) {

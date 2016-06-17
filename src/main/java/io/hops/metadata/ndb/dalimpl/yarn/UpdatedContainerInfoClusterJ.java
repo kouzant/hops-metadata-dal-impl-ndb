@@ -23,7 +23,6 @@ import com.mysql.clusterj.annotation.PersistenceCapable;
 import com.mysql.clusterj.annotation.PrimaryKey;
 import io.hops.exception.StorageException;
 import io.hops.metadata.ndb.ClusterjConnector;
-import io.hops.metadata.ndb.cache.PersistTime;
 import io.hops.metadata.ndb.wrapper.HopsPredicate;
 import io.hops.metadata.ndb.wrapper.HopsQuery;
 import io.hops.metadata.ndb.wrapper.HopsQueryBuilder;
@@ -152,7 +151,7 @@ public class UpdatedContainerInfoClusterJ
   @Override
   public void addAll(Collection<UpdatedContainerInfo> containers)
           throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<UpdatedContainerInfoDTO> toModify =
         new ArrayList<UpdatedContainerInfoDTO>();
     for (UpdatedContainerInfo entry : containers) {
@@ -165,7 +164,7 @@ public class UpdatedContainerInfoClusterJ
   @Override
   public void removeAll(Collection<UpdatedContainerInfo> containers)
           throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<UpdatedContainerInfoDTO> toRemove =
         new ArrayList<UpdatedContainerInfoDTO>();
     for (UpdatedContainerInfo entry : containers) {
@@ -178,11 +177,8 @@ public class UpdatedContainerInfoClusterJ
   // Cache-enabled session is available
   private UpdatedContainerInfoDTO createPersistable(UpdatedContainerInfo hop,
           HopsSession session) throws StorageException {
-    //long start = System.currentTimeMillis();
     UpdatedContainerInfoDTO dto =
         session.newCachedInstance(UpdatedContainerInfoDTO.class);
-    //long delta = System.currentTimeMillis() - start;
-    //PersistTime.getInstance().writeUpdatedContainerTime(delta);
     dto.setrmnodeid(hop.getRmnodeid());
     dto.setcontainerid(hop.getContainerId());
     dto.setupdatedcontainerinfoid(hop.getUpdatedContainerInfoId());
