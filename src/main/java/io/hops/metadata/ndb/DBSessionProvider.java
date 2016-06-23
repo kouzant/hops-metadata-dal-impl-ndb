@@ -254,17 +254,27 @@ public class DBSessionProvider implements Runnable {
     while (automaticRefresh) {
       try {
         int toGCSize = toGC.size();
+        int cacheDisabledSessions = 0;
+        int cacheEnabledSessions = 0;
 
         if (toGCSize > 0) {
           LOG.debug("Renewing a session(s) " + toGCSize);
           for (int i = 0; i < toGCSize; i++) {
             DBSession session = toGC.remove();
+            if (session.getSession().isCachedEnabled()) {
+              cacheEnabledSessions++;
+            } else {
+              cacheDisabledSessions++;
+            }
             session.getSession().close();
           }
           //System.out.println("CGed " + toGCSize);
 
-          // TODO: Fix this
-          for (int i = 0; i < toGCSize; i++) {
+          for (int i = 0; i < cacheDisabledSessions; i++) {
+            nonCachedSessionPool.add(initSession(false));
+          }
+
+          for (int i = 0; i < cacheEnabledSessions; i++) {
             preparingSessionPool.add(initSession(true));
           }
           //System.out.println("Created " + toGCSize);
@@ -285,10 +295,10 @@ public class DBSessionProvider implements Runnable {
         Thread.sleep(5);
       } catch (NoSuchElementException e) {
         //System.out.print(".");
-        // TODO: Handle this correctly
+        // TODO: Will we ever follow this path?
         for (int i = 0; i < 100; i++) {
           try {
-            readySessionPool.add(initSession(true));
+            nonCachedSessionPool.add(initSession(false));
           } catch (StorageException e1) {
             LOG.error(e1);
           }
