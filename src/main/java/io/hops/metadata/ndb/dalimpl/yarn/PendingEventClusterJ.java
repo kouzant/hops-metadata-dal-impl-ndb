@@ -80,7 +80,7 @@ public class PendingEventClusterJ
   @Override
   public void createPendingEvent(PendingEvent persistedEvent)
       throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     PendingEventDTO dto = createPersistable(persistedEvent, session);
     session.makePersistent(dto);
     session.release(dto);
@@ -89,7 +89,7 @@ public class PendingEventClusterJ
   @Override
   public void removePendingEvent(PendingEvent persistedEvent)
       throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     PendingEventDTO dto = createPersistable(persistedEvent, session);
     session.deletePersistent(dto);
     session.release(dto);
@@ -101,7 +101,7 @@ public class PendingEventClusterJ
   @Override
   public void addAll(Collection<PendingEvent> toAddPendingEvent)
           throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<PendingEventClusterJ.PendingEventDTO> toPersist
             = new ArrayList<PendingEventClusterJ.PendingEventDTO>();
     for (PendingEvent pendEvent : toAddPendingEvent) {
@@ -126,7 +126,7 @@ public class PendingEventClusterJ
   @Override
   public void removeAll(Collection<PendingEvent> toRemovePendingEvents)
           throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<PendingEventClusterJ.PendingEventDTO> toRemove
             = new ArrayList<PendingEventClusterJ.PendingEventDTO>();
     for (PendingEvent pendEvent : toRemovePendingEvents) {
@@ -197,9 +197,10 @@ public class PendingEventClusterJ
    * @param session
    * @return
    */
+  // Cache-enabled session is available
   private PendingEventDTO createPersistable(PendingEvent hopPersistedEvent,
       HopsSession session) throws StorageException {
-    PendingEventDTO DTO = session.newInstance(PendingEventDTO.class);
+    PendingEventDTO DTO = session.newCachedInstance(PendingEventDTO.class);
     //Set values to persist new persistedEvent
     DTO.setrmnodeid(hopPersistedEvent.getId().getNodeId());
     DTO.setType(hopPersistedEvent.getType());

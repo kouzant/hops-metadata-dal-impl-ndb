@@ -151,7 +151,7 @@ public class UpdatedContainerInfoClusterJ
   @Override
   public void addAll(Collection<UpdatedContainerInfo> containers)
           throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<UpdatedContainerInfoDTO> toModify =
         new ArrayList<UpdatedContainerInfoDTO>();
     for (UpdatedContainerInfo entry : containers) {
@@ -164,7 +164,7 @@ public class UpdatedContainerInfoClusterJ
   @Override
   public void removeAll(Collection<UpdatedContainerInfo> containers)
           throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<UpdatedContainerInfoDTO> toRemove =
         new ArrayList<UpdatedContainerInfoDTO>();
     for (UpdatedContainerInfo entry : containers) {
@@ -174,10 +174,11 @@ public class UpdatedContainerInfoClusterJ
     session.release(toRemove);
   }
 
+  // Cache-enabled session is available
   private UpdatedContainerInfoDTO createPersistable(UpdatedContainerInfo hop,
           HopsSession session) throws StorageException {
     UpdatedContainerInfoDTO dto =
-        session.newInstance(UpdatedContainerInfoDTO.class);
+        session.newCachedInstance(UpdatedContainerInfoDTO.class);
     dto.setrmnodeid(hop.getRmnodeid());
     dto.setcontainerid(hop.getContainerId());
     dto.setupdatedcontainerinfoid(hop.getUpdatedContainerInfoId());

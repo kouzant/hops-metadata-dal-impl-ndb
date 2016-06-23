@@ -101,7 +101,7 @@ public class NodeHBResponseClusterJ implements TablesDef.NodeHBResponseTableDef,
 
   @Override
   public void addAll(Collection<NodeHBResponse> toAdd) throws StorageException {
-    HopsSession session = connector.obtainSession();
+    HopsSession session = connector.obtainCachedSession();
     List<NodeHBResponseDTO> toPersist = new ArrayList<NodeHBResponseDTO>();
     for(NodeHBResponse response: toAdd){
       NodeHBResponseDTO dto = createPersistable(response, session);
@@ -146,10 +146,11 @@ public class NodeHBResponseClusterJ implements TablesDef.NodeHBResponseTableDef,
     }
   }
 
+  // Cache-enabled session is available
   private NodeHBResponseDTO createPersistable(NodeHBResponse nodehbresponse,
       HopsSession session) throws StorageException {
     NodeHBResponseDTO nodeHBResponseDT0 =
-        session.newInstance(NodeHBResponseDTO.class);
+        session.newCachedInstance(NodeHBResponseDTO.class);
     nodeHBResponseDT0.setrmnodeid(nodehbresponse.getRMNodeId());
     try {
       nodeHBResponseDT0.setresponse(CompressionUtils.compress(nodehbresponse.

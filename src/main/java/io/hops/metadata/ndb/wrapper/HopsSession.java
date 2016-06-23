@@ -18,20 +18,29 @@
  */
 package io.hops.metadata.ndb.wrapper;
 
-import com.mysql.clusterj.ClusterJException;
-import com.mysql.clusterj.LockMode;
-import com.mysql.clusterj.Query;
-import com.mysql.clusterj.Session;
-import com.mysql.clusterj.Transaction;
+import com.mysql.clusterj.*;
 import com.mysql.clusterj.query.QueryBuilder;
 import io.hops.exception.StorageException;
+import io.hops.metadata.ndb.cache.DTOCache;
+import io.hops.metadata.ndb.cache.DTOCacheImpl;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.util.Collection;
+import java.util.List;
 
 public class HopsSession {
+  private final Log LOG = LogFactory.getLog(HopsSession.class);
+
   private final Session session;
+  private DTOCache dtoCache = null;
 
   public HopsSession(Session session) {
     this.session = session;
+  }
+
+  public boolean isCachedEnabled() {
+    return dtoCache != null;
   }
 
   public HopsQueryBuilder getQueryBuilder() throws StorageException {
@@ -60,6 +69,49 @@ public class HopsSession {
     } catch (ClusterJException e) {
       throw HopsExceptionHelper.wrap(e);
     }
+  }
+
+  public void createDTOCache() {
+    dtoCache = new DTOCacheImpl();
+  }
+
+  private void assertCacheEnabled() throws StorageException {
+    if (dtoCache == null) {
+      throw new StorageException("DTO cache is disabled for this session");
+    }
+  }
+
+  public void registerType(Class type, int cacheSize, int maxCacheSize, int step) throws StorageException {
+    assertCacheEnabled();
+    dtoCache.registerType(type, cacheSize, maxCacheSize, step);
+  }
+
+  public void deregisterType(Class type) throws StorageException {
+    assertCacheEnabled();
+    dtoCache.deregisterType(type);
+  }
+
+  public <T> boolean putToCache(Class<T> type, T element) throws StorageException {
+    assertCacheEnabled();
+
+    return dtoCache.put(type, element);
+  }
+
+  public List<Class> getNotFullTypes() throws StorageException {
+    return dtoCache.getNotFullTypes();
+  }
+
+  public <T> T newCachedInstance(Class<T> aClass) throws StorageException {
+    if (dtoCache != null && dtoCache.containsType(aClass)) {
+      T instance = dtoCache.get(aClass);
+      if (instance != null) {
+        return instance;
+      } else {
+        dtoCache.increaseCacheCapacity(aClass);
+      }
+    }
+
+    return newInstance(aClass);
   }
 
   public <T> T newInstance(Class<T> aClass) throws StorageException {
