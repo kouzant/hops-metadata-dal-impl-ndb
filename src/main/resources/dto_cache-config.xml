@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<dtoCache>
+  <!-- The number of worker threads that will fill up the cache -->
+  <threadLimit limit="4"/>
+  <!-- The number of cache enabled sessions -->
+  <sessions num="40"/>
+  <!-- The number of sessions each worker thread will populate -->
+  <sessionsPerThread sessions="10"/>
+  <!-- The number of sessions that the workers will wait until
+       they start filling up the cache -->
+  <sessionsInterval interval="20"/>
+  <!-- List of cache elements -->
+  <!-- Class of the DTO interface -->
+  <dto class="io.hops.metadata.ndb.dalimpl.yarn.PendingEventClusterJ">
+    <!-- Name of the interface -->
+    <name>PendingEventDTO</name>
+    <!-- Initial cache size -->
+    <initialSize>12000</initialSize>
+    <!-- Maximum cache size -->
+    <maxSize>20000</maxSize>
+    <!-- Increasing step of the cache size after some cache-misses -->
+    <step>400</step>
+  </dto>
+  <dto class="io.hops.metadata.ndb.dalimpl.yarn.NodeHBResponseClusterJ">
+    <name>NodeHBResponseDTO</name>
+    <initialSize>2000</initialSize>
+    <maxSize>7000</maxSize>
+    <step>200</step>
+  </dto><dto class="io.hops.metadata.ndb.dalimpl.yarn.UpdatedContainerInfoClusterJ">
+    <name>UpdatedContainerInfoDTO</name>
+    <initialSize>2000</initialSize>
+    <maxSize>7000</maxSize>
+    <step>200</step>
+  </dto>
+</dtoCache>

@@ -17,7 +17,7 @@ import java.util.List;
  */
 public class BenchDTOCreation extends NDBBaseTest {
 
-    private final int RUNS = 2;
+    private final int RUNS = 0;
     private final int MIN_HB = 100;
     private final int MAX_HB = 10000;
     private final int HB_STEP = 50;
@@ -25,9 +25,9 @@ public class BenchDTOCreation extends NDBBaseTest {
     private final List<NextHeartbeat> toPersist =
             new ArrayList<NextHeartbeat>();
 
-    @Ignore
     @Test
     public void createNxtHB() throws Exception {
+        storageFactory.getConnector().initDTOCache();
         FileWriter writer;
 
         for (int i = 0; i < RUNS; ++i) {
