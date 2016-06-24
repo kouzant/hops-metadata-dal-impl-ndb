@@ -22,6 +22,7 @@ import com.mysql.clusterj.ClusterJException;
 import com.mysql.clusterj.ClusterJHelper;
 import com.mysql.clusterj.Constants;
 import io.hops.exception.StorageException;
+import io.hops.metadata.ndb.cache.ConfigParser;
 import io.hops.metadata.ndb.dalimpl.yarn.*;
 import io.hops.metadata.ndb.wrapper.HopsExceptionHelper;
 import io.hops.metadata.ndb.wrapper.HopsSession;
@@ -29,6 +30,8 @@ import io.hops.metadata.ndb.wrapper.HopsSessionFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import javax.xml.parsers.ParserConfigurationException;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -55,6 +58,7 @@ public class DBSessionProvider implements Runnable {
   private Thread thread;
   private DTOCacheGenerator cacheGenerator;
   private Thread dtoCacheGeneratorThread;
+  private ConfigParser.CacheConfig cacheConf;
 
   public DBSessionProvider(Properties conf, int reuseCount, int initialPoolSize)
       throws StorageException {
@@ -70,23 +74,39 @@ public class DBSessionProvider implements Runnable {
   }
 
   public void initDTOCache() throws StorageException {
-    // TODO: Get number of cached sessions from configuration file
-    int NUM_OF_CACHE_ENABLED_SESSIONS = 40;
+    try {
+      ConfigParser parser = new ConfigParser("dto_cache-config.xml");
+      cacheConf = parser.parse();
 
-    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
-      readySessionPool.add(initSession(true));
-    }
+      if (cacheConf == null) {
+        throw new StorageException("Something went wrong while parsing DTO cache configuration file. " +
+                "DTO cache has NOT been started!");
+      }
+      
+      int NUM_OF_CACHE_ENABLED_SESSIONS = cacheConf.getSessions();
 
-    for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
-      preparingSessionPool.add(initSession(true));
-    }
+      for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
+        readySessionPool.add(initSession(true));
+      }
 
-    if (NUM_OF_CACHE_ENABLED_SESSIONS > 0) {
-      cacheGenerator = new DTOCacheGenerator(this, 4, 10);
-      dtoCacheGeneratorThread = new Thread(cacheGenerator);
-      dtoCacheGeneratorThread.setDaemon(true);
-      dtoCacheGeneratorThread.setName("DTO Cache Generator");
-      dtoCacheGeneratorThread.start();
+      for (int i = 0; i < (NUM_OF_CACHE_ENABLED_SESSIONS / 2); i++) {
+        preparingSessionPool.add(initSession(true));
+      }
+
+      if (NUM_OF_CACHE_ENABLED_SESSIONS > 0) {
+        cacheGenerator = new DTOCacheGenerator(this, cacheConf.getThreadLimit(),
+                cacheConf.getSessionsPerThread(), cacheConf.getSessionsInterval());
+        dtoCacheGeneratorThread = new Thread(cacheGenerator);
+        dtoCacheGeneratorThread.setDaemon(true);
+        dtoCacheGeneratorThread.setName("DTO Cache Generator");
+        dtoCacheGeneratorThread.start();
+      }
+    } catch (IOException ex) {
+      LOG.error(ex, ex);
+      throw new StorageException("Error while parsing DTO cache configuration file");
+    } catch (ParserConfigurationException ex) {
+      LOG.error(ex, ex);
+      throw new StorageException("Error while parsing DTO cache configuration file");
     }
   }
 
@@ -120,11 +140,13 @@ public class DBSessionProvider implements Runnable {
 
     if (cacheEnabled) {
       session.createDTOCache();
-      // TODO: Is this a good place to register DTOs to cache?
-      // TODO: Parse initial size, max size and step from a configuration file
-      session.registerType(PendingEventClusterJ.PendingEventDTO.class, 20000, 30000, 400);
-      session.registerType(UpdatedContainerInfoClusterJ.UpdatedContainerInfoDTO.class, 2000, 7000, 200);
-      session.registerType(NodeHBResponseClusterJ.NodeHBResponseDTO.class, 2000, 7000, 200);
+      if (cacheConf != null) {
+        for (ConfigParser.CachedDTO cdto : cacheConf.getCachedDTOs()) {
+          if (cdto.getDtoClass() != null) {
+            session.registerType(cdto.getDtoClass(), cdto.getInitSize(), cdto.getMaxSize(), cdto.getStep());
+          }
+        }
+      }
     }
     Long sessionCreationTime = (System.currentTimeMillis() - startTime);
     rollingAvg[rollingAvgIndex.incrementAndGet() % rollingAvg.length] =

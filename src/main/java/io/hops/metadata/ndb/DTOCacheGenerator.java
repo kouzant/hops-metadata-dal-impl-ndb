@@ -16,7 +16,7 @@ public class DTOCacheGenerator implements Runnable {
 
     private final Log LOG = LogFactory.getLog(DTOCacheGenerator.class);
 
-    private final int SESSIONS_TO_PREPARE = 20;
+    private final int sessionsInterval;
     private final int sessionsThreshold;
     private final DBSessionProvider sessionProvider;
     private final ExecutorService exec;
@@ -25,15 +25,12 @@ public class DTOCacheGenerator implements Runnable {
     private final Semaphore waitForSessions;
     private boolean warmup = true;
 
-    public DTOCacheGenerator(DBSessionProvider sessionProvider) {
-        this(sessionProvider, 2, 200);
-    }
-
     public DTOCacheGenerator(DBSessionProvider sessionProvider, int maxNumberOfThreads,
-            int sessionsThreshold) {
+            int sessionsThreshold, int sessionsInterval) {
         this.sessionProvider = sessionProvider;
         this.exec = Executors.newCachedThreadPool();
         this.sessionsThreshold = sessionsThreshold;
+        this.sessionsInterval = sessionsInterval;
         semaphore = new Semaphore(maxNumberOfThreads, true);
         waitForSessions = new Semaphore(0, true);
         this.workers = new ArrayList<Future<?>>(maxNumberOfThreads);
@@ -50,7 +47,7 @@ public class DTOCacheGenerator implements Runnable {
                     toBePreparedSessions = sessionProvider.getAllPreparingSessions();
                     warmup = false;
                 } else {
-                    toBePreparedSessions = sessionProvider.getPreparingSessions(SESSIONS_TO_PREPARE);
+                    toBePreparedSessions = sessionProvider.getPreparingSessions(sessionsInterval);
                 }
 
                 int preparingSizeNow = toBePreparedSessions.size();
@@ -89,7 +86,7 @@ public class DTOCacheGenerator implements Runnable {
                     workers.clear();
                 }
 
-                waitForSessions.acquire(SESSIONS_TO_PREPARE);
+                waitForSessions.acquire(sessionsInterval);
             }
 
         } catch (InterruptedException ex) {
