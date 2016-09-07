@@ -251,6 +251,9 @@ void *HopsEventThread::Run(void * _pLHandler) {
 	return NULL;
 }
 
+long lastTimestamp = 0;
+int numOfEvents = 0;
+
 void HopsEventThread::PushDataToOtherThread(NdbEventOperation *_pNdbOperation) {
 	Uint64 tempTransId = _pNdbOperation->getTransId();
 	Uint64 transactionId = Uint64((Uint32) tempTransId) << 32
@@ -258,6 +261,7 @@ void HopsEventThread::PushDataToOtherThread(NdbEventOperation *_pNdbOperation) {
 	std::string stablename(_pNdbOperation->getTable()->getName());
 	int index = m_mapTableNameIndex[stablename];
 	int numberOfEvents = m_mapTablenNoOfEvents[stablename];
+	numOfEvents += numberOfEvents;
 	HopsReturnObject *pReturnObject = new HopsReturnObject(
 			(char *) _pNdbOperation->getTable()->getName());
 	for (int l = 0; l < numberOfEvents; l++) {
@@ -287,11 +291,28 @@ void HopsEventThread::PushDataToOtherThread(NdbEventOperation *_pNdbOperation) {
 	m_pQHolder[l_iThreaedIdOffSet]->AddToProducerQueue(pContMNS);
 	m_pQHolder[l_iThreaedIdOffSet]->PushToIntermediateQueue();
 
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	long now = tv.tv_sec * 1000;
+
+	if (now - lastTimestamp >= 1000) {
+	  //printf("Number of events pushed to other thread per second: %i\n", numOfEvents);
+	  gettimeofday(&tv, NULL);
+	  lastTimestamp = tv.tv_sec * 1000;
+	  numOfEvents = 0;
+	}
+
 }
 
 void HopsEventThread::CancelEventThread() {
 	pthread_cancel(m_threadid);
 }
+
+Ndb::EventBufferMemoryUsage buf_info;
+
+struct timeval tvT;
+long lastTimestampT = 0;
+
 void HopsEventThread::StartThread() {
 	while (true) {
 		if (getIsEventDetailsSet()) {
@@ -302,6 +323,15 @@ void HopsEventThread::StartThread() {
 						NdbEventOperation *ptempOP;
 						while ((ptempOP = m_Ndb->nextEvent())) {
 							PushDataToOtherThread(ptempOP);
+						}
+
+						gettimeofday(&tvT, NULL);
+						long now = tvT.tv_sec * 1000;
+						if (now - lastTimestampT >= 1000) {
+						  m_Ndb->get_event_buffer_memory_usage(buf_info);
+						  cout << "Event buffer usage: " << buf_info.used_bytes << endl;
+						  gettimeofday(&tvT, NULL);
+						  lastTimestampT = tvT.tv_sec * 1000;
 						}
 					}
 				}else{

@@ -18,6 +18,7 @@
 #include <string>
 #include <utility>
 #include <algorithm>
+#include <sys/time.h>
 
 #define SECONDS      1000000000
 #define MILLISECONDS 1000000
@@ -640,6 +641,11 @@ void HopsJNIDispatcher::ClearBatchMemory() {
 	// objects are successfully dispatcher, clear the map for next fresh batch of events.
 	m_mapOfBatchTransactionObjects.clear();
 }
+
+int numOfCallsWo = 0;
+long lastTimestampWo = 0;
+struct timeval tv;
+
 int HopsJNIDispatcher::SingleThreadBDWithOutRefTable() {
 	int GlobalTotalTransactionCount = 0;
 
@@ -672,6 +678,17 @@ int HopsJNIDispatcher::SingleThreadBDWithOutRefTable() {
 			m_ptrJNI->CallVoidMethod(m_newCallBackObj,
 					m_mdSingleThreadCallBackMethod);
 
+			numOfCallsWo++;
+			gettimeofday(&tv, NULL);
+			long now = tv.tv_sec * 1000;
+
+			if (now - lastTimestampWo >= 1000) {
+			  cout << "onEventMethod per second: " << numOfCallsWo << endl;
+			  gettimeofday(&tv, NULL);
+			  lastTimestampWo = tv.tv_sec * 1000;
+			  numOfCallsWo = 0;
+			}
+
 			l_innermapItr->second.clear();
 		}
 
@@ -681,8 +698,12 @@ int HopsJNIDispatcher::SingleThreadBDWithOutRefTable() {
 	ClearBatchMemory();
 	return GlobalTotalTransactionCount;
 }
-int HopsJNIDispatcher::SingleThreadBDWithRefTable() {
 
+int numOfCalls = 0;
+long lastTimestampD= 0;
+long nowD = 0;
+
+int HopsJNIDispatcher::SingleThreadBDWithRefTable() {
 	int GlobalTotalTransactionCount = 0;
 
 	m_mapOfBTObjectsItr = m_mapOfBatchTransactionObjects.begin();
@@ -725,6 +746,18 @@ int HopsJNIDispatcher::SingleThreadBDWithRefTable() {
 
 					m_ptrJNI->CallVoidMethod(m_newCallBackObj,
 							m_mdSingleThreadCallBackMethod);
+
+					gettimeofday(&tv, NULL);
+					nowD = tv.tv_sec * 1000;
+					numOfCalls++;
+					
+					if (nowD - lastTimestampD >= 1000) {
+					  cout << "onEventMethod per second: " << numOfCalls << endl;
+					  gettimeofday(&tv, NULL);
+					  lastTimestampD = tv.tv_sec * 1000;
+					  numOfCalls = 0;
+					  
+					}
 					//lets call the reset method here to clear the objects, so we can prepare the objects for next round
 					m_ptrJNI->CallVoidMethod(m_newCallBackObj, m_mdResetMethod);
 
