@@ -406,6 +406,10 @@ void HopsJNIDispatcher::StartProcesser() {
 	}
 }
 
+int waitInTheQueue = 0;
+int numOfObjects = 0;
+struct timeval tvQ;
+
 int HopsJNIDispatcher::processQ() {
 	HopsEventDataPacket * pCont = NULL;
 	int l_iProcessedMsg = 0;
@@ -431,8 +435,10 @@ int HopsJNIDispatcher::processQ() {
 				if (m_iInternalGCIIndex > 0) {
 					m_ptrThreadToken->WaitForSignal();
 				}
+
 				MultiThreadedDispatch(
 						l_vecJavaTempObject);
+				
 				//unsigned long long l_FinishTime =
 				//		m_ptrSleepTimer->GetEpochTime();
 				//printf("%d,%lld\n", l_iTransactionCount, l_FinishTime);
@@ -443,7 +449,14 @@ int HopsJNIDispatcher::processQ() {
 						m_ptrSleepTimer->GetEpochTime();
 				int l_iTransactionCount = 0;
 				if (m_bIsReferenceTableProvided) {
-					l_iTransactionCount = SingleThreadBDWithRefTable();
+				  std::string tableName(_pMsg->GetReturnObject()->GetTableName());
+				  if (tableName.compare("yarn_rmnode") == 0) {
+				    long eventThreadT = pCont->timestamp;
+				    gettimeofday(&tvQ, NULL);
+				    waitInTheQueue += tvQ.tv_sec * 1000 - eventThreadT;
+				    numOfObjects++;
+				  }
+				  l_iTransactionCount = SingleThreadBDWithRefTable();
 				} else {
 					l_iTransactionCount = SingleThreadBDWithOutRefTable();
 				}
@@ -456,8 +469,10 @@ int HopsJNIDispatcher::processQ() {
 			m_iInternalGCIIndex = _pMsg->GetGCIIndexValue();
 		}
 
-		ProcessAndFillBatchData(_pMsg->GetReturnObject(),
-				_pMsg->getTransactionId());
+		//ProcessAndFillBatchData(_pMsg->GetReturnObject(),
+		//		_pMsg->getTransactionId());
+		ProcessAndFillTheData(_pMsg->GetReturnObject(),
+				      _pMsg->getTransactionId());
 
 		delete _pMsg;
 		delete pCont;
@@ -678,16 +693,16 @@ int HopsJNIDispatcher::SingleThreadBDWithOutRefTable() {
 			m_ptrJNI->CallVoidMethod(m_newCallBackObj,
 					m_mdSingleThreadCallBackMethod);
 
-			numOfCallsWo++;
-			gettimeofday(&tv, NULL);
-			long now = tv.tv_sec * 1000;
+			// numOfCallsWo++;
+			// gettimeofday(&tv, NULL);
+			// long now = tv.tv_sec * 1000;
 
-			if (now - lastTimestampWo >= 1000) {
-			  cout << "onEventMethod per second: " << numOfCallsWo << endl;
-			  gettimeofday(&tv, NULL);
-			  lastTimestampWo = tv.tv_sec * 1000;
-			  numOfCallsWo = 0;
-			}
+			// if (now - lastTimestampWo >= 1000) {
+			//   cout << "onEventMethod per second: " << numOfCallsWo << endl;
+			//   gettimeofday(&tv, NULL);
+			//   lastTimestampWo = tv.tv_sec * 1000;
+			//   numOfCallsWo = 0;
+			// }
 
 			l_innermapItr->second.clear();
 		}
@@ -749,13 +764,20 @@ int HopsJNIDispatcher::SingleThreadBDWithRefTable() {
 
 					gettimeofday(&tv, NULL);
 					nowD = tv.tv_sec * 1000;
-					numOfCalls++;
+					//numOfCalls++;
 					
 					if (nowD - lastTimestampD >= 1000) {
-					  cout << "onEventMethod per second: " << numOfCalls << endl;
+					  //cout << "onEventMethod per second: " << numOfCalls << endl;
+					  if (numOfObjects > 0) {
+					    cout << ">>> AVG waitInQ: " << waitInTheQueue / numOfObjects << endl;
+
+					    waitInTheQueue = 0;
+					    numOfObjects = 0;
+					  }
+					  
 					  gettimeofday(&tv, NULL);
 					  lastTimestampD = tv.tv_sec * 1000;
-					  numOfCalls = 0;
+					  //numOfCalls = 0;
 					  
 					}
 					//lets call the reset method here to clear the objects, so we can prepare the objects for next round
@@ -821,6 +843,9 @@ int HopsJNIDispatcher::PreprocessJavaObjectsWithoutReferenceTable(
 	int GlobalTotalTransactionCount = 0;
 
 	m_mapOfReturnObjectItr = m_mapOfReturnObject.begin();
+	if (m_mapOfReturnObject.empty()) {
+	  printf("NO REF mapOfReturningObjects is empty!!!\n");
+	}
 	for (; m_mapOfReturnObjectItr != m_mapOfReturnObject.end();
 			++m_mapOfReturnObjectItr) {
 
@@ -856,6 +881,9 @@ int HopsJNIDispatcher::PreprocessJavaObjects(vector<jobject> & _vecJObject) {
 
 	int GlobalTotalTransactionCount = 0;
 
+	if (m_mapOfSortingObjects.empty()) {
+	  printf("mapOfSortingObjects is empty!!!\n");
+	}
 	mapOfSortingItr = m_mapOfSortingObjects.begin();
 	for (; mapOfSortingItr != m_mapOfSortingObjects.end(); ++mapOfSortingItr) {
 		std::map<int, Uint64>::iterator l_innermapItr =
@@ -906,6 +934,7 @@ int HopsJNIDispatcher::MultiThreadedDispatch(vector<jobject> &classObjects) {
 		if (m_mdMultiThreadCallBackMethod != NULL) {
 			m_ptrJNI->CallVoidMethod(m_newCallBackObj,
 					m_mdMultiThreadCallBackMethod, classObjects[i]);
+
 			m_ptrJNI->DeleteLocalRef(classObjects[i]);
 		} else {
 			printf(

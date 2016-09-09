@@ -16,6 +16,9 @@ using namespace hops::utl;
 #define MILLISECONDS 1000000
 #define MICROSECONDS 1000
 #define NANOSECONDS  1
+
+struct timeval tvU;
+
 HopsEventDataPacket::HopsEventDataPacket() {
 	m_ptrData = NULL;
 	m_ptrNext = NULL;
@@ -23,11 +26,14 @@ HopsEventDataPacket::HopsEventDataPacket() {
 HopsEventDataPacket::HopsEventDataPacket(void * _pData) {
 	m_ptrData = _pData;
 	m_ptrNext = NULL;
+	gettimeofday(&tvU, NULL);
+	timestamp = tvU.tv_sec * 1000;
 }
 
 HopsQueue::HopsQueue() {
 	m_ptrHead = NULL;
 	m_ptrTail = NULL;
+	qSize = 0;
 }
 void HopsQueue::PushToQueue(HopsEventDataPacket * _pDataContainer) {
 	if (m_ptrHead) {
@@ -54,11 +60,13 @@ HopsEventQueueFrame::~HopsEventQueueFrame() {
 void HopsEventQueueFrame::AddToProducerQueue(
 		HopsEventDataPacket * _pDataContainer) {
 	m_ptrProducerQueue->PushToQueue(_pDataContainer);
+	m_ptrProducerQueue->qSize++;
 }
 void HopsEventQueueFrame::AddToProducerQueueWithLock(
 		HopsEventDataPacket * _pDataContainer) {
 	pthread_mutex_lock(&m_mutexQueueHolder);
 	m_ptrProducerQueue->PushToQueue(_pDataContainer);
+	m_ptrProducerQueue->qSize++;
 	pthread_mutex_unlock(&m_mutexQueueHolder);
 
 }
@@ -74,6 +82,8 @@ void HopsEventQueueFrame::PushToIntermediateQueue() {
 		m_ptrIntermediateQueue->m_ptrTail = m_ptrProducerQueue->m_ptrTail;
 		m_ptrProducerQueue->m_ptrHead = NULL;
 		m_ptrProducerQueue->m_ptrTail = NULL;
+		m_ptrIntermediateQueue->qSize += m_ptrProducerQueue->qSize;
+		m_ptrProducerQueue->qSize = 0;
 	}
 
 	pthread_mutex_unlock(&m_mutexQueueHolder);
@@ -90,6 +100,8 @@ void HopsEventQueueFrame::PollFromIntermediateQueue() {
 		m_ptrConsumerQueue->m_ptrTail = m_ptrIntermediateQueue->m_ptrTail;
 		m_ptrIntermediateQueue->m_ptrHead = NULL;
 		m_ptrIntermediateQueue->m_ptrTail = NULL;
+		m_ptrConsumerQueue->qSize += m_ptrIntermediateQueue->qSize;
+		m_ptrIntermediateQueue->qSize = 0;
 	}
 	pthread_mutex_unlock(&m_mutexQueueHolder);
 }
@@ -99,6 +111,7 @@ HopsEventDataPacket* HopsEventQueueFrame::PollFromConsumerQueue() {
 		m_ptrConsumerQueue->m_ptrHead =
 				m_ptrConsumerQueue->m_ptrHead->m_ptrNext;
 		pCont->m_ptrNext = NULL;
+		m_ptrConsumerQueue->qSize--;
 		return pCont;
 	} else
 		return NULL;

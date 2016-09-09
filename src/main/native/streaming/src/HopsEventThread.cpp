@@ -251,8 +251,10 @@ void *HopsEventThread::Run(void * _pLHandler) {
 	return NULL;
 }
 
-long lastTimestamp = 0;
-int numOfEvents = 0;
+// long lastTimestamp = 0;
+// int numOfEvents = 0;
+struct timeval tvP;
+long lastTimestampP;
 
 void HopsEventThread::PushDataToOtherThread(NdbEventOperation *_pNdbOperation) {
 	Uint64 tempTransId = _pNdbOperation->getTransId();
@@ -261,7 +263,7 @@ void HopsEventThread::PushDataToOtherThread(NdbEventOperation *_pNdbOperation) {
 	std::string stablename(_pNdbOperation->getTable()->getName());
 	int index = m_mapTableNameIndex[stablename];
 	int numberOfEvents = m_mapTablenNoOfEvents[stablename];
-	numOfEvents += numberOfEvents;
+	//numOfEvents += numberOfEvents;
 	HopsReturnObject *pReturnObject = new HopsReturnObject(
 			(char *) _pNdbOperation->getTable()->getName());
 	for (int l = 0; l < numberOfEvents; l++) {
@@ -291,27 +293,42 @@ void HopsEventThread::PushDataToOtherThread(NdbEventOperation *_pNdbOperation) {
 	m_pQHolder[l_iThreaedIdOffSet]->AddToProducerQueue(pContMNS);
 	m_pQHolder[l_iThreaedIdOffSet]->PushToIntermediateQueue();
 
-	struct timeval tv;
-	gettimeofday(&tv, NULL);
-	long now = tv.tv_sec * 1000;
+	gettimeofday(&tvP, NULL);
+	long now = tvP.tv_sec * 1000;
 
-	if (now - lastTimestamp >= 1000) {
-	  //printf("Number of events pushed to other thread per second: %i\n", numOfEvents);
-	  gettimeofday(&tv, NULL);
-	  lastTimestamp = tv.tv_sec * 1000;
-	  numOfEvents = 0;
+	if (now - lastTimestampP >= 1000) {
+	  int prodQ = m_pQHolder[l_iThreaedIdOffSet]->m_ptrProducerQueue->qSize;
+	  int interQ = m_pQHolder[l_iThreaedIdOffSet]->m_ptrIntermediateQueue->qSize;
+	  int consQ = m_pQHolder[l_iThreaedIdOffSet]->m_ptrConsumerQueue->qSize;
+
+	  cout << "Thread : " << l_iThreaedIdOffSet << " P <" << prodQ << "> I <" << interQ << "> C <" << consQ << ">" << endl;
+
+	  gettimeofday(&tvP, NULL);
+	  lastTimestampP = tvP.tv_sec * 1000;
 	}
 
+	// struct timeval tv;
+	// gettimeofday(&tv, NULL);
+	// long now = tv.tv_sec * 1000;
+
+	// if (now - lastTimestamp >= 1000) {
+	//   //printf("Number of events pushed to other thread per second: %i\n", numOfEvents);
+	//   gettimeofday(&tv, NULL);
+	//   lastTimestamp = tv.tv_sec * 1000;
+	//   numOfEvents = 0;
+	// }
 }
 
 void HopsEventThread::CancelEventThread() {
 	pthread_cancel(m_threadid);
 }
 
-Ndb::EventBufferMemoryUsage buf_info;
+// Ndb::EventBufferMemoryUsage buf_info;
 
 struct timeval tvT;
 long lastTimestampT = 0;
+int numOfPolledEvents = 0;
+int numOfPEEvents = 0;
 
 void HopsEventThread::StartThread() {
 	while (true) {
@@ -323,16 +340,25 @@ void HopsEventThread::StartThread() {
 						NdbEventOperation *ptempOP;
 						while ((ptempOP = m_Ndb->nextEvent())) {
 							PushDataToOtherThread(ptempOP);
+							// numOfPolledEvents++;
+							// std::string stablename(ptempOP->getTable()->getName());
+							// if (stablename.compare("yarn_pendingevents") == 0) {
+							//   numOfPEEvents++;
+							// }
 						}
 
-						gettimeofday(&tvT, NULL);
-						long now = tvT.tv_sec * 1000;
-						if (now - lastTimestampT >= 1000) {
-						  m_Ndb->get_event_buffer_memory_usage(buf_info);
-						  cout << "Event buffer usage: " << buf_info.used_bytes << endl;
-						  gettimeofday(&tvT, NULL);
-						  lastTimestampT = tvT.tv_sec * 1000;
-						}
+						// gettimeofday(&tvT, NULL);
+						// long now = tvT.tv_sec * 1000;
+						// if (now - lastTimestampT >= 1000) {
+						//   //m_Ndb->get_event_buffer_memory_usage(buf_info);
+						//   //cout << "Event buffer usage: " << buf_info.used_bytes << endl;
+						//   cout << "Number of polled events per second: " << numOfPolledEvents << endl;
+						//   cout << "Number of PE polled events per second: " << numOfPEEvents << endl;
+						//   gettimeofday(&tvT, NULL);
+						//   lastTimestampT = tvT.tv_sec * 1000;
+						//   numOfPolledEvents = 0;
+						//   numOfPEEvents = 0;
+						// }
 					}
 				}else{
 					sleep(1);

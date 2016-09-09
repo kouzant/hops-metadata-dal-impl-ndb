@@ -31,6 +31,7 @@ namespace hops
 				virtual ~HopsEventDataPacket() {}
 				void * m_ptrData;
 				HopsEventDataPacket* m_ptrNext;
+				long timestamp;
 			};
 			class HopsQueue
 			{
@@ -38,6 +39,8 @@ namespace hops
 				HopsEventDataPacket * m_ptrHead, * m_ptrTail;
 				HopsQueue();
 				void PushToQueue( HopsEventDataPacket *);
+			public:
+				int qSize;
 			};
 			class HopsEventQueueFrame
 			{

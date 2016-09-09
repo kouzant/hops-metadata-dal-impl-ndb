@@ -28,4 +28,3 @@ void EventThreadData::setTransactionId(Uint64 _transactionId) {
 Uint64 EventThreadData::getTransactionId() {
 	return m_TransactionId;
 }
-
