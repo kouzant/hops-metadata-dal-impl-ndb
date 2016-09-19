@@ -301,7 +301,8 @@ void HopsEventThread::PushDataToOtherThread(NdbEventOperation *_pNdbOperation) {
 	  int interQ = m_pQHolder[l_iThreaedIdOffSet]->m_ptrIntermediateQueue->qSize;
 	  int consQ = m_pQHolder[l_iThreaedIdOffSet]->m_ptrConsumerQueue->qSize;
 
-	  cout << "Thread : " << l_iThreaedIdOffSet << " P <" << prodQ << "> I <" << interQ << "> C <" << consQ << ">" << endl;
+	  // cout << "Thread : " << l_iThreaedIdOffSet << " P <" << prodQ << "> I <" << interQ << "> C <" << consQ << ">" << endl;
+	  cout << "Thread: " << l_iThreaedIdOffSet << "," << prodQ << "," << interQ << "," << consQ << endl;
 
 	  gettimeofday(&tvP, NULL);
 	  lastTimestampP = tvP.tv_sec * 1000;

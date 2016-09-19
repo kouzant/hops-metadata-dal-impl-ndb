@@ -432,6 +432,14 @@ int HopsJNIDispatcher::processQ() {
 							l_vecJavaTempObject);
 				}
 
+				std::string tableName(_pMsg->GetReturnObject()->GetTableName());
+				if (tableName.compare("yarn_rmnode") == 0) {
+				  long eventThreadT = pCont->timestamp;
+				  gettimeofday(&tvQ, NULL);
+				  waitInTheQueue += tvQ.tv_sec * 1000 - eventThreadT;
+				  numOfObjects++;
+				}
+				  
 				if (m_iInternalGCIIndex > 0) {
 					m_ptrThreadToken->WaitForSignal();
 				}
@@ -926,6 +934,10 @@ int HopsJNIDispatcher::PreprocessJavaObjects(vector<jobject> & _vecJObject) {
 
 }
 
+struct timeval tvMT;
+long lastTimestampMT = 0;
+long nowMT = 0;
+
 int HopsJNIDispatcher::MultiThreadedDispatch(vector<jobject> &classObjects) {
 
 	int l_iClassObjects = (int) classObjects.size();
@@ -935,6 +947,19 @@ int HopsJNIDispatcher::MultiThreadedDispatch(vector<jobject> &classObjects) {
 			m_ptrJNI->CallVoidMethod(m_newCallBackObj,
 					m_mdMultiThreadCallBackMethod, classObjects[i]);
 
+			gettimeofday(&tvMT, NULL);
+			nowMT = tvMT.tv_sec * 1000;
+
+			if (nowMT - lastTimestampMT >= 1000) {
+			  if (numOfObjects > 0) {
+			    cout << "Thread: " << m_threadid << " AVG waitInQ: " << waitInTheQueue / numOfObjects << endl;
+			    waitInTheQueue = 0;
+			    numOfObjects = 0;
+			  }
+			  gettimeofday(&tvMT, NULL);
+			  lastTimestampMT = tvMT.tv_sec * 1000;
+			}
+			
 			m_ptrJNI->DeleteLocalRef(classObjects[i]);
 		} else {
 			printf(
