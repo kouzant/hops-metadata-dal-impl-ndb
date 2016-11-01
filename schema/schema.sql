@@ -364,7 +364,8 @@ CREATE TABLE `hdfs_metadata_log` (
   `dataset_id` int(11) NOT NULL,
   `inode_id` int(11) NOT NULL,
   `timestamp` bigint(20) NOT NULL,
-  `inode_pid` int(11) NOT NULL,
+  `inode_partition_id` int(11) NOT NULL,
+  `inode_parent_id` int(11) NOT NULL,
   `inode_name` varchar(255) NOT NULL DEFAULT '',
   `operation` smallint(11) NOT NULL,
   PRIMARY KEY (`dataset_id` ,`inode_id` , `timestamp`),
@@ -494,6 +495,21 @@ CREATE TABLE `yarn_pendingevents` (
   `contains` INT NULL,
   PRIMARY KEY (`id`, `rmnodeid`))
 ENGINE = ndbcluster DEFAULT CHARSET=latin1$$
+
+delimiter $$
+
+CREATE TABLE `hdfs_metadata_log` (
+  `dataset_id` int(11) NOT NULL,
+  `inode_id` int(11) NOT NULL,
+  `timestamp` bigint(20) NOT NULL,
+  `inode_partition_id` int(11) NOT NULL,
+  `inode_parent_id` int(11) NOT NULL,
+  `inode_name` varchar(255) NOT NULL DEFAULT '',
+  `operation` smallint(11) NOT NULL,
+  PRIMARY KEY (`dataset_id` ,`inode_id` , `timestamp`),
+  KEY `timestamp` (`timestamp`)
+) ENGINE=ndbcluster DEFAULT CHARSET=latin1$$
+
 
 delimiter $$
 
