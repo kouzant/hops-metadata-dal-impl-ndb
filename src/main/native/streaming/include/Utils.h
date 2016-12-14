@@ -18,7 +18,7 @@
 
 /* 
  * File:   Utils.h
- * Author: Mahmoud Ismail<maism@kth.se>
+ * Author: Mahmoud Ismail<maism@kth.se>, Konstantin Popov <kost@sics.se>
  *
  */
 
@@ -26,9 +26,10 @@
 #define UTILS_H
 
 #include "common.h"
-#include<cstdlib>
-#include<cstring>
+#include <cstdlib>
+#include <cstring>
 #include <sstream>
+#include "EventMsg.h"
 
 using namespace std;
 namespace Utils {
@@ -74,6 +75,8 @@ namespace Utils {
          */
 
         /* extracts the length and the start byte of the data stored */
+      /// the data container is owned by ndb, that is, it must be
+      /// saved somewhere else if not used immediately;
         inline static int get_byte_array(const NdbRecAttr* attr,
                 const char*& first_byte,
                 size_t& bytes) {
@@ -138,9 +141,58 @@ namespace Utils {
             return NULL;
         }
 
-  
-    }
+      /// Extracts the (native C) string from given NdbRecAttr
+      /// Uses get_byte_array internally
+      /// Allocates memory using either EventMsg::calloc()
+      inline static char* const get_cstring(const NdbRecAttr* const attr, EventMsg *msg)
+      {
+	size_t attr_bytes;
+	const char* data_start_ptr = NULL;
 
+	/* get stored length and data using get_byte_array */
+	if (get_byte_array(attr, data_start_ptr, attr_bytes) == 0) {
+	  /* we have length of the string and start location */
+	  if (attr->getType() == NdbDictionary::Column::Char) {
+	    /* Fixed Char : remove blank spaces at the end */
+	    for (int nonCharIdx = attr_bytes - 1 ; nonCharIdx >= 0; nonCharIdx--)
+	      if (data_start_ptr[nonCharIdx] == ' ')
+		attr_bytes--;
+	  }
+
+	  // use EventMsg's "own" heap
+	  char *cstr = msg->calloc(attr_bytes + 1); // including the trailing \0;
+	  /*
+	   * do NOT fallback for malloc() for large chunks: apparently
+	   * (comparing the execution times of a special test program
+	   * doing malloc()"s of different sizes) these are not
+	   * free-listed and cause excessive brk() system calls, while
+	   * allocating memory that is seldom used (but cover
+	   * worst-case requirements) actually causes little, if any
+	   * performance degradation. Furthermore, having two distinct
+	   * sources of memory - through EventMsg::calloc() and
+	   * malloc() - would require explicit message inspection and
+	   * appropriate free() calls when messages are reclaimed;
+	   *
+	  if (cstr == (char *) NULL)
+	    // fallback to native malloc() - at the price of the cost
+	    // of the latter, now and later on when EventMsg is
+	    // reclaimed, and all malloc() -allocated strings must be free() 'd;
+	    cstr = malloc(attr_bytes + 1);
+	  if (cstr == (char *) NULL) {
+	    LOG_ERROR("get_cstring() run out of memory");
+	    exit(1);
+	  }
+	  */
+	  assert(cstr != (char *) NULL);
+	      
+	  //
+	  (void) memcpy(cstr, data_start_ptr, attr_bytes);
+	  cstr[attr_bytes] = 0;
+	  return (cstr);
+	} else {
+	  return ((char *) NULL);
+	}
+      }
 
     inline static string concat(const char* a, const string b) {
         string buf(a);
