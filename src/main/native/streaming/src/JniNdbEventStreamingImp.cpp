@@ -40,25 +40,9 @@ JniNdbEventStreamingImp::JniNdbEventStreamingImp(JNIEnv *env,jboolean jIsLeader,
   isLeader=(bool) jIsLeader;
   
   if(isLeader){
-    Ndb* rmnode_tailer_connection = create_ndb_connection(databaseName);
-    rmNodeTailer = new RMNodeTableTailer(rmnode_tailer_connection, mPollMaxTimeToWait,jvm);
-    rmNodeTailer->start();
-    
-    Ndb* pendingEvent_tailer_connection = create_ndb_connection(databaseName);
-    pendingEventTailer = new PendingEventTableTailer(pendingEvent_tailer_connection, mPollMaxTimeToWait,jvm);
-    pendingEventTailer->start();
-    
-    Ndb* resource_tailer_connection = create_ndb_connection(databaseName);
-    resourceTailer = new ResourceTableTailer(resource_tailer_connection, mPollMaxTimeToWait,jvm);
-    resourceTailer->start();
-    
-    Ndb* updatedContainerInfo_tailer_connection = create_ndb_connection(databaseName);
-    updatedContainerInfoTailer = new UpdatedContainerInfoTableTailer(updatedContainerInfo_tailer_connection, mPollMaxTimeToWait,jvm);
-    updatedContainerInfoTailer->start();
-    
-    Ndb* containerStatus_tailer_connection = create_ndb_connection(databaseName);
-    containerStatusTailer = new ContainerStatusTableTailer(containerStatus_tailer_connection, mPollMaxTimeToWait,jvm);
-    containerStatusTailer->start();
+    Ndb* db_connection = create_ndb_connection(databaseName);
+    evHandlingSys = new AsyncEvHandlingSys(db_connection, jvm, 3, 3);
+    evHandlingSys->start();
   }else{
     Ndb* containerIdToClean_tailer_connection = create_ndb_connection(databaseName);
     containerIdToCleanTailer = new ContainerIdToCleanTableTailer(containerIdToClean_tailer_connection, mPollMaxTimeToWait,jvm);
@@ -77,16 +61,8 @@ JniNdbEventStreamingImp::JniNdbEventStreamingImp(JNIEnv *env,jboolean jIsLeader,
 
 JniNdbEventStreamingImp::~JniNdbEventStreamingImp(){
   if(isLeader){
-    LOG_INFO("delete tabletailer 1");
-    rmNodeTailer->stop();
-    LOG_INFO("delete tabletailer 2");
-    pendingEventTailer->stop();
-    LOG_INFO("delete tabletailer 3");
-    resourceTailer->stop();
-    LOG_INFO("delete tabletailer 4");
-    updatedContainerInfoTailer->stop();
-    LOG_INFO("delete tabletailer 5");
-    containerStatusTailer->stop();
+    evHandlingSys->stop();
+    delete evHandlingSys;
   }else{
     containerIdToCleanTailer->stop();
     nextHeartBeatTailer->stop();

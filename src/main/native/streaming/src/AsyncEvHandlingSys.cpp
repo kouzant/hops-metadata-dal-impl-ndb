@@ -190,5 +190,5 @@ void AsyncEvHandlingSys::stop()
   listenerThread->stop();
   //
   for (i = 0; i < nMsgHandlers; i++)
-    msgHandlingThreads[i]->start();
+    msgHandlingThreads[i]->stop();
 }

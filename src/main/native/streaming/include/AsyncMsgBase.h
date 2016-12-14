@@ -32,6 +32,7 @@
  */
 
 #include "PoolMsgBase.h"
+#include <cassert>
 
 template<typename MsgType> class GenericMsgP2PQueueHead;
 template<typename MsgType> class GenericMsgP2PQueueTail;

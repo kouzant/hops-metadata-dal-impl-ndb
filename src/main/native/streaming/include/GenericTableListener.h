@@ -30,7 +30,7 @@
 #include <jni.h>
 #include "TableTailer.h"
 #include "EventMsg.h"
-#include "GenericLister.h"
+#include "GenericListener.h"
 
 /**
  * @addtogroup AsyncUpdateEventHandling

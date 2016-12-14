@@ -92,7 +92,7 @@ public:
   bool isUsed() const { return (cnt > 0); }
   // as long as there is no message from the pending event table
   // (i.e. entries == 0), the container is not complete per definition;
-  book isComplete() const { return (entries != 0 && cnt == entries); }
+  bool isComplete() const { return (entries != 0 && cnt == entries); }
 
   //
   PendingEventID getKey() const {

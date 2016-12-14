@@ -21,11 +21,7 @@
 #define _Included_NdbEventStreamingImp
 
 #include "NdbApi.hpp"
-#include "RMNodeTableTailer.h"
-#include "PendingEventTableTailer.h"
-#include "ResourceTableTailer.h"
-#include "UpdatedContainerInfoTableTailer.h"
-#include "ContainerStatusTableTailer.h"
+#include "AsyncEvHandlingSys.h"
 #include "ContainerIdToCleanTableTailer.h"
 #include "NextHeartBeatTableTailer.h"
 #include "FinishedApplicationsTableTailer.h"
@@ -41,11 +37,9 @@ class JniNdbEventStreamingImp {
   bool isLeader;
   
   Ndb_cluster_connection *mClusterConnection;
-  RMNodeTableTailer *rmNodeTailer;
-  PendingEventTableTailer *pendingEventTailer;
-  ResourceTableTailer *resourceTailer;
-  UpdatedContainerInfoTableTailer *updatedContainerInfoTailer;
-  ContainerStatusTableTailer *containerStatusTailer;
+  AsyncEvHandlingSys *evHandlingSys;
+  
+  
   ContainerIdToCleanTableTailer *containerIdToCleanTailer;
   NextHeartBeatTableTailer *nextHeartBeatTailer;
   FinishedApplicationsTableTailer *finishedApplicationsTailer;
