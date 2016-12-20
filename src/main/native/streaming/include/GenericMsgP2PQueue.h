@@ -31,6 +31,9 @@
  * @{
  */
 
+#include "common.h"
+#include "Platform.h"
+
 template<typename MsgType> class GenericMsgP2PQueueHead;
 template<typename MsgType> class GenericMsgP2PQueueTail;
 
@@ -95,19 +98,19 @@ void initGenericMsgP2PQueue(MsgType *initMsg,
 
 //
 template<typename MsgType>
-MsgType* flushMsgP2PQueue(GenericMsgP2PQueueHead<MsgType> *head,
-			   GenericMsgP2PQueueTail<MsgType> *tail);
+MsgType* flushGenericMsgP2PQueue(GenericMsgP2PQueueHead<MsgType> *head,
+				 GenericMsgP2PQueueTail<MsgType> *tail);
 
 /// The thread-safe "point-to-point" queue's "head" object - provides
 /// the dequeue() operation.
 template<typename MsgType>
 class GenericMsgP2PQueueHead {
-  template<typename MsgType>
-  friend void initP2PQueue(MsgType *initMsg,
-			   GenericMsgP2PQueueHead<MsgType> *head,
-			   GenericMsgP2PQueueTail<MsgType> *tail);
-  template<typename MsgType>
-  friend MsgType* flushMsgP2PQueue(GenericMsgP2PQueueHead<MsgType> *head,
+  friend void 
+  initGenericMsgP2PQueue<MsgType>(MsgType *initMsg,
+				  GenericMsgP2PQueueHead<MsgType> *head,
+				  GenericMsgP2PQueueTail<MsgType> *tail);
+  friend MsgType*
+  flushGenericMsgP2PQueue<MsgType>(GenericMsgP2PQueueHead<MsgType> *head,
 				   GenericMsgP2PQueueTail<MsgType> *tail);
 public:
   /// objects must be initialized with GenericMsgP2PQueue::init()
@@ -159,12 +162,12 @@ private:
 /// the enqueue() operation.
 template<typename MsgType>
 class GenericMsgP2PQueueTail {
-  template<typename MsgType>
-  friend void initP2PQueue(MsgType *initMsg,
-			   GenericMsgP2PQueueHead<MsgType> *head,
-			   GenericMsgP2PQueueTail<MsgType> *tail);
-  template<typename MsgType>
-  friend MsgType* flushMsgP2PQueue(GenericMsgP2PQueueHead<MsgType> *head,
+  friend void 
+  initGenericMsgP2PQueue<MsgType>(MsgType *initMsg,
+				  GenericMsgP2PQueueHead<MsgType> *head,
+				  GenericMsgP2PQueueTail<MsgType> *tail);
+  friend MsgType*
+  flushGenericMsgP2PQueue<MsgType>(GenericMsgP2PQueueHead<MsgType> *head,
 				   GenericMsgP2PQueueTail<MsgType> *tail);
 public:
   GenericMsgP2PQueueTail() : last((MsgType *) NULL) {}

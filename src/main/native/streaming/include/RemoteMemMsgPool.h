@@ -31,6 +31,7 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsgPool.h"
 
 /// The complementary "remote part" for SharedMemMsgPool objects:
@@ -61,5 +62,7 @@ private:
   GenericMsgP2PQueueTail<MsgType> * const rqs;
   unsigned int const nRqs;    //!< number of registered return queues;
 };
+
+#include "RemoteMemMsgPool.tcpp"
 
 #endif // REMOTEMEMMSGPOOL_H

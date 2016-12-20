@@ -24,7 +24,7 @@
 
 #include "ContainerStatusTableListener.h"
 
-const PendingEventField _containerStatus_peCol = 
+const WatchTableColIndex _containerStatus_peCol = 
   (WatchTableColIndex) CS_Col_PENDING_EVENT_ID;
 
 const WatchTableMsgField _containerStatus_msgFields[8] = {

@@ -20,13 +20,14 @@
 #define RMNODETABLELISTENER_H
 
 /* 
- * File:   GenericTableListener.h
+ * File:   RMNodeTableListener.h
  * Author: ???, Konstantin Popov <kost@sics.se>
  *
  */
 
+#include "common.h"
 #include "GenericTableListener.h"
-#include <EventMsg.h>
+#include "EventMsg.h"
 
 
 /**
@@ -67,7 +68,7 @@ typedef enum {
   RMN_Msg_NODEMANAGER_VERSION = 7
 } RMNodeTableMsgIndex;
 
-extern const PendingEventField _rmnode_peCol;
+extern const WatchTableColIndex _rmnode_peCol;
 
 extern const WatchTableMsgField _rmnode_msgFields[];
 

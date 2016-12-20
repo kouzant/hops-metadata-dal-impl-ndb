@@ -31,6 +31,7 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsgPool.h"
 
 /// Memory management framework for GenericMsg objects under
@@ -110,5 +111,7 @@ private:
   /// used until next dequeue, due to GenericMsgP2PQueue limitation);
   MsgType ** const lastMsg;
 };
+
+#include "SharedMemMsgPool.tcpp"
 
 #endif // SHAREDMEMMSGPOOL_H

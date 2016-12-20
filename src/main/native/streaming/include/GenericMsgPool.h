@@ -31,6 +31,8 @@
  * @{
  */
 
+#include "common.h"
+
 /// Memory management framework for EventMsg objects in the
 /// "asynchronous event handling" framework.
 ///

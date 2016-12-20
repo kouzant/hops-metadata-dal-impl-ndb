@@ -25,16 +25,41 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
+#include "common.h"
+#include <stdint.h>
+
 /**
  * @addtogroup AsyncUpdateEventHandling
  *
  * @{
  */
 
-// platform-specific assembly snippets;
+// TODO - these shoud come from the build environment (e.g. autoconfig
+// checks)
+#define ARCH	i686_arch
 
-// TODO - should come from the build environment, in some form
-#define ARCH i686_arch
+// CPU instructions..
+#define CC_x86_XCHG
+#define CC_x86_CMPXCHG
+#define CC_x86_CMPXCHG8B
+#define CC_x86_INC
+#define CC_x86_DEC
+#define CC_x86_XADD
+#define CC_x86_MFENCE
+#define CC_x86_SFENCE
+#define CC_x86_LFENCE
+#define CC_x86_RDTSC
+// GCC intrinsics..
+#define CC_MEM_ACC_BARRIER
+#define CC_SYNC_BOOL_COMPARE_AND_SWAP
+#define CC_SYNC_SYNCHRONIZE
+#define CC_BUILTIN_EXPECT
+#define CC_BUILTIN_PREFETCH
+#define CC_BUILTIN_CTZ
+#define CC_BUILTIN_CLZ
+
+
+// platform-specific assembly snippets;
 
 #if ARCH == i686_arch
 
@@ -196,13 +221,6 @@ inline uint64_t rdtsc_unsync()
 
 
 // gcc intrinsics;
-
-// TODO - these shoud come from the build environment too
-#define CC_SYNC_SYNCHRONIZE
-#define CC_BUILTIN_EXPECT
-#define CC_BUILTIN_PREFETCH
-#define CC_BUILTIN_CLZ
-#define CC_BUILTIN_CTZ
 //
 #if defined(CC_SYNC_SYNCHRONIZE)
 #define CC_FULL_BARRIER()		__sync_synchronize()
@@ -254,8 +272,6 @@ inline uint64_t rdtsc_unsync()
 #define Full_BARRIER()			CC_FULL_BARRIER()
 #elif defined(x86_MFENCE)
 #define Full_BARRIER()			x86_MFENCE()
-#elif defined(tile_MF)
-#define Full_BARRIER()			tile_MF()
 #else
     NOT IMPLEMENTED!;
 #endif
@@ -267,17 +283,6 @@ inline uint64_t rdtsc_unsync()
 #else
 #define MEM_ACC_BARRIER()		Full_BARRIER()
 #endif
-
-//
-//#define LoadStore_BARRIER()
-//#define LoadLoad_BARRIER()
-//#define StoreStore_BARRIER()
-//#define StoreLoad_BARRIER()
-
-// combined LoadLoad + StoreLoad :
-//#define Load_BARRIER()
-// combined StoreLoad + StoreStore :
-//#define Store_BARRIER()
 
 #if ARCH == i686_arch
 
@@ -298,6 +303,28 @@ inline uint64_t rdtsc_unsync()
 // combined StoreLoad + StoreStore :
 #define Store_BARRIER()			StoreLoad_BARRIER()
 
+#else
+    NOT IMPLEMENTED!;
+#endif
+
+
+// various platform-specific constants
+
+#if ARCH == i686_arch
+unsigned int const CACHE_LINE = 64;
+#else
+    NOT IMPLEMENTED!;
+#endif
+
+#  if __GLIBC__ >= 2
+/// a HINT of the memory overhead for malloc() and friends - such that
+/// memory fragmentation could be avoided with objects that should be
+/// memory-aligned but can be "stretched" to exploit available space.
+/// For example, EventMsg objects should be cache line aligned, and
+/// include a small memory heap - then (N*CACHE_LINE -
+/// MALLOC_OVERHEAD) is the object size that fully exploits N cache
+/// lines.
+unsigned int const MALLOC_OVERHEAD = 16;
 #else
     NOT IMPLEMENTED!;
 #endif

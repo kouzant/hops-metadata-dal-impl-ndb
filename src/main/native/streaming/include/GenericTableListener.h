@@ -26,6 +26,7 @@
 #define GENERICTABLELISTENER_H
 
 #include <pthread.h>
+#include "common.h"
 #include "Utils.h"
 #include <jni.h>
 #include "TableTailer.h"
@@ -57,8 +58,18 @@ typedef struct {
 } WatchTableMsgField;
 
 /// enum Operation is defined in TableTailer.h, but WatchTable is extended:
-class ListenerWatchTable : public WatchTable {
+class ListenerWatchTable {
 public:
+  // the following fields should have been inherited from WatchTable -
+  // however, the latter one is a struct, not a class - so the
+  // ListenerWatchTable() constructor cannot name and hence initialize
+  // WatchTable's fields;
+  const string mTableName;
+  const string* mColumnNames;
+  const int mNoColumns;
+  const NdbDictionary::Event::TableEvent* mWatchEvents;
+  const int mNoEvents;
+  //
   const WatchTableColIndex pendingEventIdCol;
   /// kost@ : cannot initialize a const array in a c++ dialect prior c++11 ??
   // const WatchTableMsgField fields[EventMsg::MAX_NUM_COLS];
@@ -83,12 +94,12 @@ public:
 /// further down to specific "table tailers"..
 template<template<class TemplateMsgType> class MsgPoolAlloc,
 	 template<class TemplateMsgType> class MsgPoolFree,
-	 template<class MsgType, class MsgPool> class MsgHandler>
+	 template<template<class TemplateMsgType> class MsgPool> class MsgHandler>
 class GenericTableListener : public GenericListener {
 public:
   GenericTableListener(Ndb* const ndb,
 		       MsgPoolAlloc<EventMsg> * const msgPool,
-		       MsgHandler<EventMsg, MsgPoolFree> * const msgHandler,
+		       MsgHandler<MsgPoolFree> * const msgHandler,
 		       const ListenerWatchTable table,
 		       const unsigned long pollTimeout);
   /// drops the NDB "event operation" and "event", and then destroys
@@ -103,16 +114,11 @@ public:
   }
 
 protected:
-  /// handleEvent() methods from subclasses provide table-specific
-  /// event handling;
-  virtual void handleEvent(NdbDictionary::Event::TableEvent eventType) = 0;
-
-protected:
   /// message pool that allocates messages;
   MsgPoolAlloc<EventMsg> * const msgPool;
   /// handle to the message handler - with asynchronous processing,
   /// that's GenericAsyncMsgHandler;
-  MsgHandler<EventMsg, MsgPoolFree> * const msgHandler;
+  MsgHandler<MsgPoolFree> * const msgHandler;
 
   Ndb* const mNdbConnection;
   /// NdbRecAttr array where new values - of the chosen columns, when
@@ -125,17 +131,19 @@ protected:
 private:
   /// internal method that does the real event polling - configurable
   /// with a timeout value;
-  void handleEvents(unsigned long timeout);
+  unsigned int handleEvents(unsigned long timeout);
   const char* getEventName(NdbDictionary::Event::TableEvent event);
 
 private:
   NdbEventOperation* ndbOp;	//!< kept for the destructor;
   const string mEventName;
-  static const ListenerWatchTable mTable;
-  /// how many times Ndb::pollEvents2() is called per handleEvent()
+  const ListenerWatchTable mTable;
+  /// how many times Ndb::pollEvents2() is called per pollEvents2()
   /// invocation - TODO ?
-  const unsigned int pollEventsIterations = 1;
+  static const unsigned int pollEventsIterations = 1;
 };
+
+#include "GenericTableListener.tcpp"
 
 #endif // GENERICTABLELISTENER_H
 

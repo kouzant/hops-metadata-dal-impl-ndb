@@ -20,13 +20,14 @@
 #define UPDATEDCONTAINERINFOTABLELISTENER_H
 
 /* 
- * File:   GenericTableListener.h
+ * File:   UpdatedContainerInfoTableListener.h
  * Author: ???, Konstantin Popov <kost@sics.se>
  *
  */
 
+#include "common.h"
 #include "GenericTableListener.h"
-#include <EventMsg.h>
+#include "EventMsg.h"
 
 /**
  * @addtogroup AsyncUpdateEventHandling
@@ -58,7 +59,7 @@ typedef enum {
   UCI_Msg_UPDATED_CONTAINER_INFO_ID = 2,
 } UpdatedContainerInfoTableMsgIndex;
 
-extern const PendingEventField _updatedContainerInfo_peCol;
+extern const WatchTableColIndex _updatedContainerInfo_peCol;
 
 extern const WatchTableMsgField _updatedContainerInfo_msgFields[];
 

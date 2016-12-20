@@ -23,7 +23,9 @@
  */
 
 #include <stdlib.h>
-#include "EventMsg.cpp"
+#include <malloc.h>
+#include <errno.h>
+#include "EventMsg.h"
 
 const size_t EventMsg::outOfMemIdx = EventMsg_OBJ_SIZE - sizeof(EventMsg);
 
@@ -31,7 +33,7 @@ EventMsg::EventMsg()
   : msgType((unsigned short) -1),
     pendingEventId(-1),
     nextContainerMsg((EventMsg*) -1),
-    allocIdx((unsigned int) -1)
+    allocIdx((unsigned short) -1)
 {
   // verify the sizes;
   assert(sizeof(allocIdx) == 2 && EventMsg_OBJ_SIZE <= UINT16_MAX);

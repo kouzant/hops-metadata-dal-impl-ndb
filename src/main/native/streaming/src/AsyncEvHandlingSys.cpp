@@ -64,7 +64,7 @@ AsyncEvHandlingSys::AsyncEvHandlingSys(Ndb* ndb,
     MsgQueueTail *msgQueueTail = freeMsgPools[i]->getQueueTail(0);
     EventMsg *initMsg = new EventMsg();
     //
-    initEventMsgP2PQueue<EventMsg>(initMsg, msgQueueHead, msgQueueTail);
+    initEventMsgP2PQueue(initMsg, msgQueueHead, msgQueueTail);
   }
 
   // the "asynchronous message handler" - one single one, shared by
@@ -131,12 +131,12 @@ AsyncEvHandlingSys::AsyncEvHandlingSys(Ndb* ndb,
     msgHandlingThreads[i] = new MsgHandlingThread(1, msgHandlers[i]);
 
   // link up the message queues:
-  MsgQueueTailTail *msgQueueTail = asyncMsgHandler->getQueueTail(0);
+  MsgQueueTail *msgQueueTail = asyncMsgHandler->getQueueTail(0);
   for (i = 0; i < nMsgHandlers; i++) {
     MsgQueueHead *msgQueueHead = msgHandlingThreads[i]->getQueueHead(i);
     EventMsg *initMsg = new EventMsg();
     //
-    initEventMsgP2PQueue<EventMsg>(initMsg, msgQueueHead, msgQueueTail);
+    initEventMsgP2PQueue(initMsg, msgQueueHead, msgQueueTail);
   }
 }
 
@@ -145,18 +145,18 @@ AsyncEvHandlingSys::~AsyncEvHandlingSys()
   unsigned int i;
 
   //
-  MsgQueueTailTail *msgQueueTail = asyncMsgHandler->getQueueTail(0);
+  MsgQueueTail *msgQueueTail = asyncMsgHandler->getQueueTail(0);
   for (i = 0; i < nMsgHandlers; i++) {
     MsgQueueHead *msgQueueHead = msgHandlingThreads[i]->getQueueHead(i);
     //
-    EventMsg *msg = flushMsgP2PQueue<EventMsg>(initMsg, msgQueueHead, msgQueueTail);
+    EventMsg *msg = flushGenericMsgP2PQueue<EventMsg>(msgQueueHead, msgQueueTail);
     delete msg;
   }
   for (i = 0; i < nMsgHandlers; i++) {
     MsgQueueHead *msgQueueHead = allocMsgPool->getQueueHead(i);
     MsgQueueTail *msgQueueTail = freeMsgPools[i]->getQueueTail(0);
     //
-    EventMsg *msg = flushMsgP2PQueue<EventMsg>(initMsg, msgQueueHead, msgQueueTail);
+    EventMsg *msg = flushGenericMsgP2PQueue<EventMsg>(msgQueueHead, msgQueueTail);
     delete msg;
   }
 
@@ -179,16 +179,16 @@ AsyncEvHandlingSys::~AsyncEvHandlingSys()
 
 void AsyncEvHandlingSys::start()
 {
-  for (i = 0; i < nMsgHandlers; i++)
-    msgHandlingThreads[i]->start();
+  for (unsigned int i = 0; i < nMsgHandlers; i++)
+    (void) msgHandlingThreads[i]->start();
   //
-  listenerThread->start();
+  (void) listenerThread->start();
 }
 
 void AsyncEvHandlingSys::stop()
 {
-  listenerThread->stop();
+  (void) listenerThread->stop();
   //
-  for (i = 0; i < nMsgHandlers; i++)
-    msgHandlingThreads[i]->stop();
+  for (unsigned int i = 0; i < nMsgHandlers; i++)
+    (void) msgHandlingThreads[i]->stop();
 }

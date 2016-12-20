@@ -37,8 +37,8 @@ void initGenericMsgP2PQueue(MsgType *initMsg,
 }
 
 template<typename MsgType>
-MsgType* flushMsgP2PQueue(GenericMsgP2PQueueHead<MsgType> *head,
-			  GenericMsgP2PQueueTail<MsgType> *tail)
+MsgType* flushGenericMsgP2PQueue(GenericMsgP2PQueueHead<MsgType> *head,
+				 GenericMsgP2PQueueTail<MsgType> *tail)
 {
   return (tail->last);
 }

@@ -17,29 +17,30 @@
  */
 
 /* 
- * File:   RemoteMemMsgPool.cpp
+ * File:   RemoteMemMsgPool.tcpp
  * Author: Konstantin Popov <kost@sics.se>
  *
  */
 
+
 template<class MsgType>
-SharedMemMsgPool::SharedMemMsgPool(unsigned int nQueues)
-  : nRqs(nQueues),
-    rqs(new GenericMsgP2PQueueTail<MsgType>[nQueues])
+RemoteMemMsgPool<MsgType>::RemoteMemMsgPool(unsigned int nQueues)
+  : rqs(new GenericMsgP2PQueueTail<MsgType>[nQueues]),
+    nRqs(nQueues)    
 {
   assert(nQueues > 0);
 }
 
 template<class MsgType>
-SharedMemMsgPool::~SharedMemMsgPool()
+RemoteMemMsgPool<MsgType>::~RemoteMemMsgPool()
 {
   delete [] rqs;
 }
 
 template<class MsgType>
-SharedMemMsgPool::getQueueTail(unsigned int n) 
+GenericMsgP2PQueueTail<MsgType>* 
+RemoteMemMsgPool<MsgType>::getQueueTail(unsigned int n) 
 {
   assert(n < nRqs);
   return (&rqs[n]);
 }
-

@@ -17,25 +17,26 @@
  */
 
 /* 
- * File:   GenericAsyncMsgHandler.cpp
+ * File:   GenericAsyncMsgHandler.tcpp
  * Author: Konstantin Popov <kost@sics.se>
  *
  */
 
-template<class MsgType>
-GenericAsyncMsgHandler::GenericAsyncMsgHandler(unsigned int nQueues)
-  : nQs(nQueues),
-    mqs(new GenericMsgP2PQueueTail<MsgType>[nQueues])
+template<class MsgType, template<class TemplateMsgType> class MsgPool>
+GenericAsyncMsgHandler<MsgType,MsgPool>::GenericAsyncMsgHandler(unsigned int nQueues)
+  : mqs(new GenericMsgP2PQueueTail<MsgType>[nQueues]),
+    nQs(nQueues)    
 {}
 
-template<class MsgType>
-GenericAsyncMsgHandler::~GenericAsyncMsgHandler()
+template<class MsgType, template<class TemplateMsgType> class MsgPool>
+GenericAsyncMsgHandler<MsgType,MsgPool>::~GenericAsyncMsgHandler()
 {
   delete [] mqs;
 }
 
-template<class MsgType>
-GenericAsyncMsgHandler::getQueueTail(unsigned int n) 
+template<class MsgType, template<class TemplateMsgType> class MsgPool>
+GenericMsgP2PQueueTail<MsgType>*
+GenericAsyncMsgHandler<MsgType,MsgPool>::getQueueTail(unsigned int n) const
 {
   assert(n < nQs);
   return (&mqs[n]);

@@ -25,11 +25,17 @@
 #ifndef EVENTMSGHANDLINGTHREAD_H
 #define EVENTMSGHANDLINGTHREAD_H
 
+#include "common.h"
+#include "GenericMsg.h"
+#include "GenericMsgHandler.h"
+
 /// GenericMsgHandlingThread objects provide threads that receive
 /// messages from listener threads, and apply to them message
 /// handlers. 
 template<class MsgType, class MsgHandler>
 class GenericMsgHandlingThread {
+  template<class MsgTypeP, class MsgHandlerP>
+  friend void* runproc(void *gptr); //!< the native threads' procedure;
 public:
   GenericMsgHandlingThread(unsigned int nQueues,
 			   MsgHandler *msgHandler);
@@ -39,16 +45,14 @@ public:
   DataflowController* getDataflowController() { return (syncObj); }
   /// references to queue heads are needed in order to initialize
   /// those together with corresponding queue tails;
-  GenericMsgP2PQueueHead<MsgType>* const getQueueHead(unsigned int n) const;
+  GenericMsgP2PQueueHead<MsgType>* getQueueHead(unsigned int n) const;
 
   /// start the native thread.
   /// In the current implementation all queues must be initialized beforehand.
-  void start();
-  void stop();
+  bool start();
+  bool stop();
 
 private:
-  static void* runproc(void *gptr); //!< the native threads' procedure;
-
   unsigned int nextQueueIdx(unsigned int n) { return ((n + 1) % nQs); }
 
 private:
@@ -68,6 +72,9 @@ private:
   bool started;
   /// when is set to false, the thread will eventually stop;
   volatile bool running;
+  pthread_t nativeThread;
 };
+
+#include "GenericMsgHandlingThread.tcpp"
 
 #endif // EVENTMSGHANDLINGTHREAD_H

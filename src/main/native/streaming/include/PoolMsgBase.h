@@ -31,6 +31,7 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsg.h"
 
 /// PoolMsgBase is the "message base class" for message objects that

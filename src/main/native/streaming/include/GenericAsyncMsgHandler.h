@@ -31,8 +31,8 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsgHandler.h"
-#include "GenericAsyncMsg.h"
 #include "GenericMsgP2PQueue.h"
 
 /// GenericAsyncMsgHandler provides an interface to asynchronous
@@ -51,14 +51,14 @@ public:
 
   /// references to queue heads are needed in order to initialize
   /// those together with corresponding queue tails;
-  GenericMsgP2PQueueHead<MsgType>* const getQueueTail(unsigned int n) const;
+  GenericMsgP2PQueueTail<MsgType>* getQueueTail(unsigned int n) const;
 
   /// [instead of queuing] send the message using the queue determined
   /// from the message's hash. Obviously, GenericAsyncMsgHandler
   /// objects of all sibling listeners must be initialized with the
   /// same number of queues;
   void handleMsg(MsgType *msg) const {
-    unsigned long const key = msg->hasKey();
+    unsigned long const key = msg->hashKey();
     unsigned int const qn = key % nQs;
     mqs[qn].enqueue(msg);
   }
@@ -71,5 +71,7 @@ private:
   GenericMsgP2PQueueTail<MsgType>* const mqs;
   unsigned int const nQs;	    //!< number of queues
 };
+
+#include "GenericAsyncMsgHandler.tcpp"
 
 #endif // GENERICASYNCMSGHANDLER_H

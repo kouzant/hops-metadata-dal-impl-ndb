@@ -31,37 +31,10 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsgHandler.h"
 #include "EventMsg.h"
 #include "GenericTableListener.h"
-
-/// EventMsgHandler handles all messages pertinent to monitoring
-/// database transactions concerning cluster status:
-///   PendingEventTableTailer
-///   RMNodeTableTailer
-///   ResourceTableTailer
-///   UpdatedContainerInfoTableTailer
-///   ContainerStatusTableTailer
-/// 
-template<template<class TemplateMsgType> class MsgPool>
-class EventMsgHandler : public GenericMsgHandler<EventMsg, MsgPool> {
-public:
-  EventMsgHandler(JavaVM* jvm,
-		  MsgPool<EventMsg> *msgPool,
-		  unsigned int msgAccSizeBits,
-		  unsigned int keyReduce);
-  ~EventMsgHandler() {}
-
-  /// 
-  void handleMsg(EventMsg *msg);
-  ///
-  void reclaimMsgObj(MsgType *msg) { msgPool->freeMsgObject(msg); }
-
-private:
-  JavaVM* const jvm;
-  MsgPool<EventMsg> * const msgPool;
-  EventMsgAccumulator msgAcc;
-};
 
 /// Auxiliary "event message container" for keeping track of arriving
 /// messages - until all messages with the same pending event id are
@@ -75,10 +48,11 @@ public:
     : key(key),
       entries(0),
       cnt(0),
-      next((EventMsgContainer *) NULL),
-      msgs[MSG_UpdatedContainerInfoTableTailer]((EventMsg *) NULL),
-      msgs[MSG_ContainerStatusTableTailer]((EventMsg *) NULL)
-  {}
+      next((EventMsgContainer *) NULL)
+  {
+    msgs[MSG_UpdatedContainerInfoTableTailer] = (EventMsg *) NULL;
+    msgs[MSG_ContainerStatusTableTailer] = (EventMsg *) NULL;
+  }
   ~EventMsgContainer() {}
   //
   void *operator new(size_t size) { return (malloc(size)); }
@@ -136,7 +110,7 @@ private:
   unsigned short cnt;		//!< current number of entries;
   EventMsgContainer *next;
   /// msgs[] is indexed by a EventMsgType value;
-  EventMsg * const msgs[NumberMsgTypes];
+  EventMsg* msgs[NumberMsgTypes];
 };
 
 /// A custom hash table for EventMsgContainer objects.  When an event
@@ -186,7 +160,7 @@ public:
   void remove(PendingEventID key, EventMsgContainer *container);
 
 private:
-  static unsigned long getIndex(PendingEventID value) { 
+  unsigned long getIndex(PendingEventID value) { 
     return ((value / keyReduce) & sizeMask); 
   }
   /// getContainer() returns a usable - but not initialized -
@@ -203,5 +177,35 @@ private:
   unsigned int keyReduce;
   EventMsgContainer* freeList;
 };
+
+/// EventMsgHandler handles all messages pertinent to monitoring
+/// database transactions concerning cluster status:
+///   PendingEventTableTailer
+///   RMNodeTableTailer
+///   ResourceTableTailer
+///   UpdatedContainerInfoTableTailer
+///   ContainerStatusTableTailer
+/// 
+template<template<class TemplateMsgType> class MsgPool>
+class EventMsgHandler : public GenericMsgHandler<EventMsg, MsgPool> {
+public:
+  EventMsgHandler(JavaVM* jvm,
+		  MsgPool<EventMsg> *msgPool,
+		  unsigned int msgAccSizeBits,
+		  unsigned int keyReduce);
+  ~EventMsgHandler() {}
+
+  /// 
+  void handleMsg(EventMsg *msg);
+  ///
+  void reclaimMsgObj(EventMsg *msg) { msgPool->freeMsgObject(msg); }
+
+private:
+  JavaVM* const jvm;
+  MsgPool<EventMsg> * const msgPool;
+  EventMsgAccumulator msgAcc;
+};
+
+#include "EventMsgHandler.tcpp"
 
 #endif // EVENTMSGHANDLER_H

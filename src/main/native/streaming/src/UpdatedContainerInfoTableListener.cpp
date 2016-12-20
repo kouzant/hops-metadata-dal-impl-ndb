@@ -24,7 +24,7 @@
 
 #include "UpdatedContainerInfoTableListener.h"
 
-extern const PendingEventField _updatedContainerInfo_peCol = UCI_Col_PENDING_EVENT_ID;
+extern const WatchTableColIndex _updatedContainerInfo_peCol = UCI_Col_PENDING_EVENT_ID;
 
 extern const WatchTableMsgField _updatedContainerInfo_msgFields[4] = {
   { WatchTable_StringField,   (WatchTableMsgFieldIndex) UCI_Msg_RMNODE_ID },

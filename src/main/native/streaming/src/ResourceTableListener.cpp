@@ -24,7 +24,7 @@
 
 #include "ResourceTableListener.h"
 
-const PendingEventField _resource_peCol = Res_Col_PENDING_EVENT_ID;
+const WatchTableColIndex _resource_peCol = Res_Col_PENDING_EVENT_ID;
 
 const WatchTableMsgField _resource_msgFields[4] = {
   { WatchTable_StringField,   (WatchTableMsgFieldIndex) Res_Msg_ID },
