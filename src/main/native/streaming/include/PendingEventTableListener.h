@@ -20,13 +20,14 @@
 #define PENDINGEVENTTABLELISTENER_H
 
 /* 
- * File:   GenericTableListener.h
+ * File:   PendingEventTableListener.h
  * Author: ???, Konstantin Popov <kost@sics.se>
  *
  */
 
+#include "common.h"
 #include "GenericTableListener.h"
-#include <EventMsg.h>
+#include "EventMsg.h"
 
 /**
  * @addtogroup AsyncUpdateEventHandling
@@ -72,7 +73,7 @@ typedef enum {
 } PendingEventTableMsgIndex;
 
 /// location (index) of the pending event column in the ndb event;
-extern const PendingEventField _pendingEvents_peCol;
+extern const WatchTableColIndex _pendingEvents_peCol;
 
 /// mapping from ndb event columns to event [representation] type and
 /// EventMsg' field index;

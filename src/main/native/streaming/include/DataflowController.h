@@ -31,6 +31,10 @@
  * @{
  */
 
+#include <pthread.h>
+#include "common.h"
+#include "Platform.h"
+
 /// DataflowController provides for controlling dataflow between
 /// multiple producers and a single consumer.
 /// 

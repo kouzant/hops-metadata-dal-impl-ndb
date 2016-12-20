@@ -32,19 +32,19 @@
 #include <istream>
 #include <ostream>
 #include <string>
+#include <assert.h>
 #include <NdbApi.hpp>
 #include "vector"
 #include "Logger.h"
 
 using namespace std;
 
-//Constansts
+//Constants
 
 #define RETRIES 5
 #define DELAY_BETWEEN_RETRIES 3
 #define VERBOSE 0
 #define WAIT_UNTIL_READY 30
-#define DEFAULT_MAX_CAPACITY 10000
 
 #endif /* COMMON_H */
 

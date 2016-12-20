@@ -31,20 +31,23 @@
  * @{
  */
 
+#include "common.h"
 #include "EventMsg.h"
 #include "EventMsgP2PQueue.h"
+#include "GenericAsyncMsgHandler.h"
 #include "SharedMemMsgPool.h"
 #include "RemoteMemMsgPool.h"
 #include "EventMsgHandler.h"
 #include "GenericListenerThread.h"
 #include "GenericTableListener.h"
+#include "GenericMsgHandlingThread.h"
 #include "PendingEventTableListener.h"
 #include "UpdatedContainerInfoTableListener.h"
 #include "ContainerStatusTableListener.h"
 #include "ResourceTableListener.h"
 #include "RMNodeTableListener.h"
 
-// PARAMETERS
+// TODO - PARAMETERS
 //
 // NOTE These are start up time parameters, so they can be changed
 // until then;
@@ -57,14 +60,38 @@ extern unsigned int numListeners;
 /// messages with the same pending event id" table.
 extern unsigned int messageAccumulatorSizeBits;
 
+// kludge for c++03 and earlier - without c++11's "alias declarations"
+// (which is the c++ name for partial template instantiation): the
+// GenericTableListener template's third parameter is a "MsgHandler"
+// template with a single parameter being a MsgPool template. The
+// MsgHandler template class is expected to implement the
+// GenericMsgHandler interface specifically for EventMsg objects.  The
+// scalable handling of EventMsg objects goes with message handlers
+// working in separate threads, and, therefore, the listener(s) have
+// to use the GenericAsyncMsgHandler implementation of the
+// GenericMsgHandler interface - and GenericAsyncMsgHandler is,
+// indeed, generic, hence, parameterized also by the message type.
+// c++03 does not allow to partially instantiate the
+// GenericAsyncMsgHandler template with MsgType being EventMsg,
+// i.e. there is no way to derive a single-argument template from a
+// two-argument one. Thus, we're forced to construct a new template
+// with a trivial subclass of GenericAsyncMsgHandler:
+template<template<class TemplateMsgType> class MsgPool>
+class EventAsyncMsgHandler : public GenericAsyncMsgHandler<EventMsg, MsgPool> {
+public:
+  EventAsyncMsgHandler(unsigned int nQueues)
+    : GenericAsyncMsgHandler<EventMsg, MsgPool>(nQueues) {}
+  ~EventAsyncMsgHandler() {}
+};
+
 // define some common derived types - avoiding template clutter..
 typedef SharedMemMsgPool<EventMsg> AllocMsgPool;
 typedef RemoteMemMsgPool<EventMsg> FreeMsgPool;
 typedef EventMsgHandler<RemoteMemMsgPool> MsgHandler;
 typedef EventMsgP2PQueueHead MsgQueueHead;
 typedef EventMsgP2PQueueTail MsgQueueTail;
-typedef GenericAsyncMsgHandler<EventMsg,RemoteMemMsgPool> AsyncMsgHandler;
-typedef GenericTableListener<SharedMemMsgPool,RemoteMemMsgPool,EventMsgHandler> TableListener;
+typedef EventAsyncMsgHandler<RemoteMemMsgPool> AsyncMsgHandler;
+typedef GenericTableListener<SharedMemMsgPool,RemoteMemMsgPool,EventAsyncMsgHandler> TableListener;
 typedef GenericListenerThread<TableListener> ListenerThread;
 typedef GenericMsgHandlingThread<EventMsg,MsgHandler> MsgHandlingThread;
 
@@ -110,6 +137,6 @@ private:
   DataflowController** const syncObj;
   MsgHandler** const msgHandlers;
   MsgHandlingThread** const msgHandlingThreads;
-}
+};
 
 #endif // ASYNCEVHANDLINGSYS_H

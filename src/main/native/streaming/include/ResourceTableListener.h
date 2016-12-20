@@ -20,13 +20,14 @@
 #define RESOURCETABLELISTENER_H
 
 /* 
- * File:   GenericTableListener.h
+ * File:   ResourceTableListener.h
  * Author: ???, Konstantin Popov <kost@sics.se>
  *
  */
 
+#include "common.h"
 #include "GenericTableListener.h"
-#include <EventMsg.h>
+#include "EventMsg.h"
 
 /**
  * @addtogroup AsyncUpdateEventHandling
@@ -59,7 +60,7 @@ typedef enum {
   Res_Msg_VIRTUALCORES = 2
 } ResourceTableMsgIndex;
 
-extern const PendingEventField _resource_peCol;
+extern const WatchTableColIndex _resource_peCol;
 
 extern const WatchTableMsgField _resource_msgFields[];
 

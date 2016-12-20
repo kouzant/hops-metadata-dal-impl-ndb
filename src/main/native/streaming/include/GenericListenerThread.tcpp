@@ -17,25 +17,26 @@
  */
 
 /* 
- * File:   GenericListenerThread.cpp
+ * File:   GenericListenerThread.tcpp
  * Author: Konstantin Popov <kost@sics.se>
  *
  */
 
-#include "GenericListenerThread.h"
+#include <limits.h>
 
 template<class Listener>
-GenericListenerThread::GenericListenerThread(unsigned int nListeners)
-  : started(false), running(true), 
+GenericListenerThread<Listener>::GenericListenerThread(unsigned int nListeners)
+  : listeners(new Listener*[nListeners]),
     nListeners(nListeners),
-    listeners(new Listener*[nListeners]),
     syncObj(new DataflowController*[nListeners]),
     pollTimeout(ULONG_MAX),
-    blockingListenerId(0)
+    blockingListenerId(0),
+    started(false),
+    running(true)    
 {}
 
 template<class Listener>
-GenericListenerThread::~GenericListenerThread()
+GenericListenerThread<Listener>::~GenericListenerThread()
 {
   assert(!running);
   for (unsigned int i = 0; i < nListeners; i++)
@@ -47,9 +48,9 @@ GenericListenerThread::~GenericListenerThread()
 
 template<class Listener>
 void 
-GenericListenerThread::registerListener(unsigned int n,
-					Listener *listener,
-					DataflowController *dfc)
+GenericListenerThread<Listener>::registerListener(unsigned int n,
+						  Listener *listener,
+						  DataflowController *dfc)
 {
   // synchronization between the method calling thread and the
   // object's "own" thread is not implemented:
@@ -68,8 +69,9 @@ GenericListenerThread::registerListener(unsigned int n,
 // (replacing with NULL pointer) those that had no events. Return the
 // total number of processed events. Note that if a non-zero value is
 // returned, some of the listeners are (still) non-zero.
+template<class Listener>
 static unsigned int eventProcessingRound(unsigned int const nListeners,
-					 Listener * const * const listeners,
+					 Listener ** const listeners,
 					 DataflowController * const * const syncObj,
 					 char *const pendingWakeup)
 {
@@ -81,7 +83,7 @@ static unsigned int eventProcessingRound(unsigned int const nListeners,
       nProcessed = gl->handleEventsNonBlocking();
 
       if (nProcessed > 0) {
-	totalProcessed += nprocessed;
+	totalProcessed += nProcessed;
 	// regardless whether we had a pending wakeup, try it now:
 	pendingWakeup[i] = syncObj[i]->checkConsumer();
       } else {
@@ -99,13 +101,16 @@ static unsigned int eventProcessingRound(unsigned int const nListeners,
 }
 
 //
-void* GenericListenerThread::runproc(void* gptr)
+template<class Listener>
+static void* runproc(void* gptr)
 {
   unsigned int i;
-  GenericListenerThread *glt = reinterpret_cast<GenericListenerThread *>(gptr);
+  GenericListenerThread<Listener> *glt =
+    reinterpret_cast<GenericListenerThread<Listener> *>(gptr);
   const unsigned int nListeners = glt->nListeners;
   Listener * const * const listeners = glt->listeners;
   DataflowController * const * const syncObj = glt->syncObj;
+  const unsigned int blockingListenerId = glt->blockingListenerId;
   Listener ** const runningListeners = new Listener*[nListeners];
   // one boolean flag per listener telling whether a particular
   // listener needs a wakeup (because previous attempt by
@@ -167,10 +172,14 @@ void* GenericListenerThread::runproc(void* gptr)
   return ((void *) NULL);
 }
 
-bool GenericListenerThread::start()
+template<class Listener>
+bool GenericListenerThread<Listener>::start()
 {
   assert(!started);
-  if (pthread_create(&nativeThread, NULL, (void* (*)(void*)) runproc, (void *) this)) {
+  if (pthread_create(&nativeThread,
+		     NULL,
+		     (void* (*)(void*)) runproc<Listener>,
+		     (void *) this)) {
     LOG_ERROR("failed to create a listener thread");
     return (false);
   } else {
@@ -180,7 +189,8 @@ bool GenericListenerThread::start()
   }
 }
 
-bool GenericListenerThread::stop()
+template<class Listener>
+bool GenericListenerThread<Listener>::stop()
 {
   assert(started);
   LOG_INFO("stop a listener thread");

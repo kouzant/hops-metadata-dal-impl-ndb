@@ -19,6 +19,16 @@
 #ifndef CONTAINERSTATUSTABLELISTENER_H
 #define CONTAINERSTATUSTABLELISTENER_H
 
+/* 
+ * File:   ContainerStatusTableListener.h
+ * Author: ???, Konstantin Popov <kost@sics.se>
+ *
+ */
+
+#include "common.h"
+#include "GenericTableListener.h"
+#include "ContainerStatusTableTailer.h"
+
 /// the "ndb event definition" tables are inherited/reused from
 /// ContainerStatusTableTailer.h. See PendingEventTableListener.h for
 /// further comments;
@@ -51,7 +61,7 @@ typedef enum {
   CS_Msg_UCIID = 6,
 } ContainerStatusTableMsgIndex;
 
-extern const PendingEventField _containerStatus_peCol;
+extern const WatchTableColIndex _containerStatus_peCol;
 
 extern const WatchTableMsgField _containerStatus_msgFields[];
 

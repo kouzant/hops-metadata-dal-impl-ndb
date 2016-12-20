@@ -32,6 +32,7 @@
  */
 
 #include "common.h"
+#include "Platform.h"
 #include "GenericMsg.h"
 #include "AsyncMsgBase.h"
 

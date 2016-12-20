@@ -32,6 +32,8 @@
  */
 
 #include <pthread.h>
+#include "common.h"
+#include "DataflowController.h"
 
 /// "generic listener thread" that is used to poll events from the ndb
 /// event queue using "generic listeners" that, in turn, are refined
@@ -49,6 +51,7 @@
 /// if there are still no events to receive).
 template<class Listener>
 class GenericListenerThread {
+  template<class ListenerP> friend void* runproc(void* gptr);
 public:
   GenericListenerThread(unsigned int nListeners);
   /// (native) thread is NOT terminated in the current implementation;
@@ -67,9 +70,6 @@ public:
   bool stop();
 
 private:
-  static void* runproc(void *gptr); //!< the native threads' procedure;
-
-private:
   Listener** const listeners;   //!< listeners' array, of size nTailers;
   unsigned int const nListeners;
   /// A DataflowController object, providing for controling dataflow
@@ -85,5 +85,7 @@ private:
   /// when is set to false, the thread will eventually stop;
   volatile bool running;
 };
+
+#include "GenericListenerThread.tcpp"
 
 #endif // GENERICLISTENERTHREAD_H

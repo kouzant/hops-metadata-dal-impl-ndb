@@ -17,28 +17,27 @@
  */
 
 /* 
- * File:   SharedMemMsgPool.cpp
+ * File:   SharedMemMsgPool.tcpp
  * Author: Konstantin Popov <kost@sics.se>
  *
  */
 
 template<class MsgType>
-SharedMemMsgPool::SharedMemMsgPool(unsigned int nQueues)
-  : nRqs(nQueues),
-    rqs(new GenericMsgP2PQueueHead<MsgType>[nQueues]),
-    lastMsg(new MsgType*[nQueues]),
-    lastCheckedRq(0)
+SharedMemMsgPool<MsgType>::SharedMemMsgPool(unsigned int nQueues)
+  : rqs(new GenericMsgP2PQueueHead<MsgType>[nQueues]),
+    nRqs(nQueues),
+    lastCheckedRq(0),
+    lastMsg(new MsgType*[nQueues])
 {
   assert(nQueues > 0);
-  assert(initMsg != (MsgType *) NULL);
   for (unsigned int i = 0; i < nQueues; i++)
     lastMsg[i] = new MsgType();
 }
 
 template<class MsgType>
-SharedMemMsgPool::~SharedMemMsgPool()
+SharedMemMsgPool<MsgType>::~SharedMemMsgPool()
 {
-  for (unsigned int i = 0; i < nQueues; i++) {
+  for (unsigned int i = 0; i < nRqs; i++) {
     MsgType *last = lastMsg[i];
     while (MsgType *msg = rqs[i].dequeue()) {
       delete last;
@@ -51,28 +50,29 @@ SharedMemMsgPool::~SharedMemMsgPool()
 }
 
 template<class MsgType>
-SharedMemMsgPool::getQueueHead(unsigned int n) const
+GenericMsgP2PQueueHead<MsgType>*
+SharedMemMsgPool<MsgType>::getQueueHead(unsigned int n) const
 {
   assert(n < nRqs);
   return (&rqs[n]);
 }
 
 template<class MsgType>
-MsgType* SharedMemMsgPool::getMsgObject()
+MsgType* SharedMemMsgPool<MsgType>::getMsgObject()
 {
   MsgType *ret;
-  if (nQueues > 1) {
+  if (nRqs > 1) {
     unsigned int i;
     MsgType *msg = (MsgType *) NULL;
 
     // start scanning from the next queue;
-    lastCheckedRq = (lastCheckedRq + 1) % nQueues;
-    for (i = 0; i < nQueues; i++) {
+    lastCheckedRq = (lastCheckedRq + 1) % nRqs;
+    for (i = 0; i < nRqs; i++) {
       msg = rqs[lastCheckedRq].dequeue();
       if (msg != (MsgType *) NULL)
 	break;
       else
-	lastCheckedRq = (lastCheckedRq + 1) % nQueues;
+	lastCheckedRq = (lastCheckedRq + 1) % nRqs;
     }
 
     if (msg != (MsgType *) NULL) {

@@ -144,7 +144,7 @@ namespace Utils {
       /// Extracts the (native C) string from given NdbRecAttr
       /// Uses get_byte_array internally
       /// Allocates memory using either EventMsg::calloc()
-      inline static char* const get_cstring(const NdbRecAttr* const attr, EventMsg *msg)
+      inline static char* get_cstring(const NdbRecAttr* const attr, EventMsg *msg)
       {
 	size_t attr_bytes;
 	const char* data_start_ptr = NULL;
@@ -193,6 +193,7 @@ namespace Utils {
 	  return ((char *) NULL);
 	}
       }
+    }
 
     inline static string concat(const char* a, const string b) {
         string buf(a);

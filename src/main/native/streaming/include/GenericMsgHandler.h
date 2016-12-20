@@ -31,6 +31,7 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsg.h"
 
 /// GenericMsgHandler is the generic interface to a "message

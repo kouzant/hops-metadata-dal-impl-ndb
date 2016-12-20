@@ -31,21 +31,21 @@
  * @{
  */
 
+#include "common.h"
+
 /// GenericListener is the generic interfrace to listener thread'
 /// objects: it defines blocking and non-blocking "do some listening &
 /// polling" operations, such that multiple listeners can share the
 /// same thread provided by a GenericListenerThread object.
 class GenericListener {
 public:
-  GenericListener(const unsinged long pollTimeout)
+  GenericListener(const unsigned long pollTimeout)
     : timeout(pollTimeout) {}
   ~GenericListener() {}
 
 public:
   unsigned int handleEventsNonBlocking() { assert(0); }
   unsigned int handleEventsTimeout() { assert(0); }
-
-protected:
   unsigned long getTimeout() { return (timeout); }
     
 private:

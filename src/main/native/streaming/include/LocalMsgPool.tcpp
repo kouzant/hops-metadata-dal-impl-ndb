@@ -17,30 +17,18 @@
  */
 
 /* 
- * File:   conf.h
+ * File:   LocalMsgPool.tcpp
  * Author: Konstantin Popov <kost@sics.se>
  *
  */
 
-#ifndef __CONF_H
-#define __CONF_H
-
-/**
- * @addtogroup AsyncUpdateEventHandling
- *
- * @{
- */
-
-// various configuration parameters
-
-unsigned int const CACHE_LINE = 64;
-/// a HINT of the memory overhead for malloc() and friends - such that
-/// memory fragmentation could be avoided with objects that should be
-/// memory-aligned but can be "stretched" to exploit available space.
-/// For example, EventMsg objects should be cache line aligned, and
-/// include a small memory heap - then (N*CACHE_LINE -
-/// MALLOC_OVERHEAD) is the object size that fully exploits N cache
-/// lines.
-unsigned int const MALLOC_OVERHEAD = 16;
-
-#endif // __CONF_H
+template<typename MsgType>
+LocalMsgPool<MsgType>::~LocalMsgPool()
+{
+  MsgType *msg = top;
+  while (msg) {
+    MsgType *next = msg->getNext();
+    delete msg;
+    msg = next;
+  }
+}

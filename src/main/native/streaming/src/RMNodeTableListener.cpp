@@ -22,11 +22,11 @@
  * 
  */
 
-#include "PendingEventTableListener.h"
+#include "RMNodeTableListener.h"
 
-const PendingEventField _rmnode_peCol = (WatchTableColIndex) RMN_Col_PENDING_EVENT_ID;
+const WatchTableColIndex _rmnode_peCol = (WatchTableColIndex) RMN_Col_PENDING_EVENT_ID;
 
-const WatchTableMsgField _rmnode_msgFields[8] = {
+const WatchTableMsgField _rmnode_msgFields[9] = {
   { WatchTable_StringField,   (WatchTableMsgFieldIndex) RMN_Msg_RMNODE_ID },
   { WatchTable_StringField,   (WatchTableMsgFieldIndex) RMN_Msg_HOST_NAME },
   { WatchTable_Int32Field,    (WatchTableMsgFieldIndex) RMN_Msg_COMMAND_PORT },
@@ -39,7 +39,7 @@ const WatchTableMsgField _rmnode_msgFields[8] = {
 };
 
 const ListenerWatchTable rmnTable(_rmnode_table,
-				  _rmnode_cols;
+				  _rmnode_cols,
 				  _rmnode_noCols,
 				  _rmnode_events,
 				  _rmnode_noEvents,

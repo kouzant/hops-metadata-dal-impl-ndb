@@ -17,7 +17,7 @@
  */
 
 /* 
- * File:   GenericMsgHandlingThread.cpp
+ * File:   GenericMsgHandlingThread.tcpp
  * Author: Konstantin Popov <kost@sics.se>
  *
  */
@@ -26,8 +26,8 @@ template<typename MsgType, typename MsgHandler>
 GenericMsgHandlingThread<MsgType,MsgHandler>::
 GenericMsgHandlingThread(unsigned int nQueues,
 			 MsgHandler *msgHandler)
-  : nQs(nQueues),
-    mqs(new GenericMsgP2PQueueHead<MsgType>[nQueues]),
+  : mqs(new GenericMsgP2PQueueHead<MsgType>[nQueues]),
+    nQs(nQueues),
     lastMsg(new MsgType*[nQueues]),
     msgHandler(msgHandler),
     syncObj(new DataflowController()),
@@ -47,54 +47,24 @@ GenericMsgHandlingThread<MsgType,MsgHandler>::~GenericMsgHandlingThread()
 }
 
 template<typename MsgType, typename MsgHandler>
-DataflowController*
-GenericMsgHandlingThread<MsgType,MsgHandler>::getDataflowController()
-{
-  assert(!started);
-  return (syncObj);
-}
-
-template<typename MsgType, typename MsgHandler>
 GenericMsgP2PQueueHead<MsgType>*
-GenericMsgHandlingThread<MsgType,MsgHandler>::getQueueHead(unsigned int n)
+GenericMsgHandlingThread<MsgType,MsgHandler>::getQueueHead(unsigned int n) const
 {
   assert(!started);
   assert(n < nQs);
   return (&mqs[n]);
 }
 
-bool GenericMsgHandlingThread<MsgType,MsgHandler>::start()
-{
-  assert(!started);
-  if (pthread_create(&nativeThread, NULL, (void* (*)(void*)) runproc, (void *) this)) {
-    LOG_ERROR("failed to create a message handling thread");
-    return (false);
-  } else {
-    LOG_INFO("started a message handling thread");
-    started = true;
-    return (true);
-  }
-}
-
-bool GenericMsgHandlingThread<MsgType,MsgHandler>::stop()
-{
-  assert(started);
-  LOG_INFO("stop a message handling thread");
-  running = false;
-  if (pthread_join(nativeThread, (void **) NULL)) {
-    LOG_ERROR("failed to join with a message handling thread");
-    return (false);
-  } else {
-    return (true);
-  }
-}
-
-void* GenericMsgHandlingThread<MsgType,MsgHandler>::runproc(void* gptr)
+template<typename MsgType, typename MsgHandler>
+void* runproc(void* gptr)
 {
   GenericMsgHandlingThread<MsgType,MsgHandler> *gmht = 
     reinterpret_cast<GenericMsgHandlingThread<MsgType,MsgHandler> *>(gptr);
   GenericMsgP2PQueueHead<MsgType>* const mqs = gmht->mqs;
   unsigned int const nQs = gmht->nQs;
+  MsgType ** const lastMsg = gmht->lastMsg;
+  MsgHandler * const msgHandler = gmht->msgHandler;
+  DataflowController * const syncObj = gmht->syncObj;
 
   //
   while (gmht->running) {
@@ -156,5 +126,37 @@ void* GenericMsgHandlingThread<MsgType,MsgHandler>::runproc(void* gptr)
     // .. either way, there should be some data now:
     syncObj->resumeWithData();
     // resume operation - in the outer loop;
+  }
+  return ((void *) NULL);
+}
+
+template<typename MsgType, typename MsgHandler>
+bool GenericMsgHandlingThread<MsgType,MsgHandler>::start()
+{
+  assert(!started);
+  if (pthread_create(&nativeThread,
+		     NULL, 
+		     (void* (*)(void*)) runproc<MsgType, MsgHandler>,
+		     (void *) this)) {
+    LOG_ERROR("failed to create a message handling thread");
+    return (false);
+  } else {
+    LOG_INFO("started a message handling thread");
+    started = true;
+    return (true);
+  }
+}
+
+template<typename MsgType, typename MsgHandler>
+bool GenericMsgHandlingThread<MsgType,MsgHandler>::stop()
+{
+  assert(started);
+  LOG_INFO("stop a message handling thread");
+  running = false;
+  if (pthread_join(nativeThread, (void **) NULL)) {
+    LOG_ERROR("failed to join with a message handling thread");
+    return (false);
+  } else {
+    return (true);
   }
 }

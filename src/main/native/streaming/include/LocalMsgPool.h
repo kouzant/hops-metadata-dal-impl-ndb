@@ -31,6 +31,7 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsgPool.h"
 
 /// The LocalMsgPool objects provide per-thread free stack of MsgType
@@ -39,7 +40,7 @@
 template<typename MsgType>
 class LocalMsgPool : public GenericMsgPool<MsgType> {
 public:
-  LocalMsgPool() : top((MsgType *) NULL);
+  LocalMsgPool() : top((MsgType *) NULL) {}
   ~LocalMsgPool();
 
   /// Allocate or re-use an MsgType object.
@@ -64,7 +65,9 @@ public:
   }
 
 private:
-  EventMsg *top;		//!< the top of the free stack;
+  MsgType *top;		//!< the top of the free stack;
 };
+
+#include "LocalMsgPool.tcpp"
 
 #endif // LOCALMSGPOOL_H

@@ -31,6 +31,7 @@
  * @{
  */
 
+#include "common.h"
 #include "GenericMsgP2PQueue.h"
 
 /// Specific instance of GenericMsgP2PQueue class templates for
@@ -39,9 +40,10 @@ typedef GenericMsgP2PQueueHead<EventMsg> EventMsgP2PQueueHead;
 typedef GenericMsgP2PQueueTail<EventMsg> EventMsgP2PQueueTail;
 
 //
-void initEventMsgP2PQueue(EventMsg *initMsg,
+inline void initEventMsgP2PQueue(EventMsg *initMsg,
 			  EventMsgP2PQueueHead *head,
-			  EventMsgP2PQueueTail *tail) {
+			  EventMsgP2PQueueTail *tail)
+{
   initGenericMsgP2PQueue(initMsg, head, tail);
 }
 
